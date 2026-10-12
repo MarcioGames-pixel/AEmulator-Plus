@@ -1,4 +1,5 @@
-/* Modified for AEmulator Sunset, 2026-10-03: cross-process display options. GPL-3.0. */
+/* Modified for AEmulator Sunset, 2026-10-03: cross-process display options.
+ * Modified for AEmulator Plus, 2026-10-12: Holo navigation bar flag for VM themes (merged from Super Plus). GPL-3.0. */
 package app.aemu
 
 import android.content.Context
@@ -20,6 +21,7 @@ object AppPrefs {
         "fr" to "Français",
         "es" to "Español",
         "pt-BR" to "Português (Brasil)",
+        "pt-PT" to "Português (Portugal)",
         "it" to "Italiano",
         "pl" to "Polski",
         "tr" to "Türkçe",
@@ -41,14 +43,15 @@ object AppPrefs {
 
     fun prefs(ctx: Context) = sp(ctx)
 
+    /** [holoNavbar] (Super Plus): the Android 4.x Holo bar - curved back arrow, Holo-blue press glow; implies the flat black bar of [sunsetNavbar]. */
     data class HostUiOptions(val cutoutBarrier: Boolean = false, val sunsetNavbar: Boolean = true,
-        val tabletNavbarRotation: Boolean = true)
+        val tabletNavbarRotation: Boolean = true, val holoNavbar: Boolean = false)
     // The VM runs in another process: read an atomic file on resume, not cached SharedPreferences.
     fun hostUiOptions(ctx: Context): HostUiOptions = runCatching {
         val file = android.util.AtomicFile(java.io.File(ctx.filesDir, "host-ui.json"))
         val json = org.json.JSONObject(file.openRead().bufferedReader().use { it.readText() })
         HostUiOptions(json.optBoolean("cutoutBarrier", false), json.optBoolean("sunsetNavbar", true),
-            json.optBoolean("tabletNavbarRotation", true))
+            json.optBoolean("tabletNavbarRotation", true), json.optBoolean("holoNavbar", false))
     }.getOrDefault(HostUiOptions())
 
     fun setHostUiOptions(ctx: Context, options: HostUiOptions) {
@@ -56,7 +59,7 @@ object AppPrefs {
         val stream = file.startWrite()
         try {
             stream.write(org.json.JSONObject().put("cutoutBarrier", options.cutoutBarrier)
-                .put("sunsetNavbar", options.sunsetNavbar).put("tabletNavbarRotation", options.tabletNavbarRotation)
+                .put("sunsetNavbar", options.sunsetNavbar).put("tabletNavbarRotation", options.tabletNavbarRotation).put("holoNavbar", options.holoNavbar)
                 .toString().toByteArray(Charsets.UTF_8))
             file.finishWrite(stream)
         } catch (error: Throwable) { file.failWrite(stream); throw error }
@@ -77,6 +80,10 @@ object AppPrefs {
 
     fun autoCheckUpdates(ctx: Context): Boolean = sp(ctx).getBoolean("auto_check_updates", true)
     fun setAutoCheckUpdates(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean("auto_check_updates", v).apply()
+
+    /** Library shown as the 3D phone carousel instead of the card list. Off by default. */
+    fun library3d(ctx: Context): Boolean = sp(ctx).getBoolean("library_3d", false)
+    fun setLibrary3d(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean("library_3d", v).apply()
 
     fun lastUpdateCheck(ctx: Context): Long = sp(ctx).getLong("last_update_check", 0L)
     fun setLastUpdateCheck(ctx: Context, v: Long) = sp(ctx).edit().putLong("last_update_check", v).apply()

@@ -142,7 +142,7 @@ object InitPlan {
         val extras = rc.services.values.filter { sv ->
             val bin = sv.argv.first()
             val base = bin.substringAfterLast('/')
-            !sv.disabled && !sv.oneshot && sv.name !in known && sv.name !in SKIP && base !in SKIP_BIN &&
+            !sv.disabled && !sv.oneshot && sv.cls != "charger" && sv.name !in known && sv.name !in SKIP && base !in SKIP_BIN &&
                 // префиксом совпадают только явные «xxx_» и длинные имена: иначе «sh» отсекал бы shelld (MIUI) и т.п.
                 SKIP_BIN.none { base == it || ((it.endsWith("_") || it.length >= 5) && base.startsWith(it)) } && !base.endsWith(".sh") &&
                 (bin.startsWith("/system/bin/") || bin.startsWith("/system/xbin/") || bin.startsWith("/vendor/bin/")) &&
@@ -161,7 +161,7 @@ object InitPlan {
     private val SKIP = setOf(
         "ueventd", "vold", "rild", "ril-daemon", "adbd", "debuggerd", "debuggerd64", "console", "dbus", "bluetoothd",
         "btld", "wpa_supplicant", "p2p_supplicant", "dhcpcd", "racoon", "mtpd", "qemud", "goldfish-setup", "goldfish-logcat",
-        "dumpstate", "flash_recovery", "recovery", "redbend_ua", "sreadaheadd", "lpmkey", "playlpm", "charger", "macloader",
+        "dumpstate", "flash_recovery", "recovery", "redbend_ua", "sreadaheadd", "lpm", "lpmkey", "playlpm", "charger", "macloader",
         "mfgloader", "wlandutservice", "bt_dut_cmd", "bootanim", "samsungani", "playsound", BootMediaServices.LEGACY_LOGO, "sdcard", "fuse_sdcard0",
         "healthd", "logd", "lmkd", "watchdogd", "ril-daemon1", "ril-daemon2", "fota", "gpsd", "sensors", "akmd",
         "rmt_storage", "qmuxd", "netmgrd", "thermald", "mpdecision", "thermal-engine", "time_daemon", "diag", "common_time", "tf_daemon",

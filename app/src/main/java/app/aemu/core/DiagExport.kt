@@ -32,6 +32,7 @@ object DiagExport {
             ZipOutputStream(raw.buffered()).use { zip ->
                 zip.setLevel(6)
                 entry(zip, "diag.txt") { it.write(diag(ctx, vm).toByteArray()) }
+                entry(zip, "guest-data-perms.txt") { it.write(runCatching { dataPerms(vm.paths.root, vm.paths.owners) }.getOrElse { "[failed: $it]" }.toByteArray()) }
                 entry(zip, "ui-log.txt") { o -> vm.lines().forEach { o.write((it + "\n").toByteArray()) } }
                 entry(zip, "input-events.txt") { o ->
                     o.write("last events sent to the guest (uptime ms, type: 0=SYN 1=KEY 3=ABS, code, value)\n".toByteArray())
@@ -39,6 +40,30 @@ object DiagExport {
                 }
                 entry(zip, "guest-logcat.txt") { o ->
                     runCatching { o.bufferedWriter().apply { GuestLog.writeExport(vm.paths.root, vm.paths.bin, this); flush() } }
+                }
+                // what is on screen right now: layers (format, alpha, size), windows (flags, hardware acceleration) and the
+                // top activity. This shows what covers the UI when the guest runs but the screen looks black.
+                if (vm.state == GuestVm.State.RUNNING) {
+                    for ((file, cmd) in listOf("guest-sf-dump.txt" to "dumpsys SurfaceFlinger",
+                        "guest-window-dump.txt" to "dumpsys window windows", "guest-activity-top.txt" to "dumpsys activity top")) {
+                        entry(zip, file) { o ->
+                            val (code, text) = vm.guestRunner.run(listOf("/system/bin/sh", "-c",
+                                "export PATH=/system/bin:/system/xbin:\$PATH; $cmd"), 15_000)
+                            o.write("# $cmd (exit $code)\n".toByteArray()); o.write(text.toByteArray())
+                        }
+                    }
+                }
+                // does the /data/user/0 -> ../data link resolve inside the guest? (root view: ls errors show the errno)
+                if (vm.state == GuestVm.State.RUNNING) entry(zip, "guest-fs-probe.txt") { o ->
+                    val cmd = "id; for p in /data /data/data /data/user /data/user/0 /data/user/0/ /data/user/0/com.android.providers.contacts " +
+                        "/data/user/0/com.android.providers.contacts/cache /data/user/0/com.android.providers.contacts/databases " +
+                        "/data/data/com.android.providers.contacts /data/data/com.android.providers.contacts/cache " +
+                        "/data/data/com.android.providers.contacts/databases /data/data/com.google.android.gsf; do echo == \$p; ls -ld \$p 2>&1; done; " +
+                        "echo == readlink; readlink /data/user/0 2>&1; echo == ls /data/user; ls -l /data/user 2>&1; " +
+                        "echo == ls /data/user/0/com.android.providers.contacts; ls -l /data/user/0/com.android.providers.contacts 2>&1; " +
+                        "echo == ls /data/data/com.android.providers.contacts/databases; ls -l /data/data/com.android.providers.contacts/databases 2>&1"
+                    val (code, text) = vm.guestRunner.run(listOf("/system/bin/sh", "-c", "export PATH=/system/bin:/system/xbin:\$PATH; $cmd"), 15_000)
+                    o.write("# exit $code\n".toByteArray()); o.write(text.toByteArray())
                 }
                 entry(zip, "guest-sms-db.txt") { it.write(smsDb(ctx, vm).toByteArray()) }
                 vm.paths.bin.listFiles()?.filter { it.isFile }?.sortedBy { it.name }?.forEach { f -> addFile(zip, "run/${f.name}", f) }
@@ -140,6 +165,7 @@ object DiagExport {
 
     private fun diag(ctx: Context, vm: GuestVm): String = buildString {
         val p = vm.paths
+        appendLine("app: " + runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).let { "${it.versionName} (code ${it.longVersionCode}), updated ${java.util.Date(it.lastUpdateTime)}" } }.getOrDefault("unknown"))
         appendLine("time: ${java.util.Date()}")
         appendLine("device: ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), abi ${Build.SUPPORTED_ABIS.joinToString()}")
         appendLine("image: ${vm.img.name} (id ${vm.img.id}), api ${vm.img.api}")
@@ -165,6 +191,32 @@ object DiagExport {
         appendLine()
         appendLine("-- run dir --")
         p.bin.listFiles()?.sortedBy { it.name }?.forEach { appendLine("${it.name}: ${kind(it)} ${it.length()} bytes, ${java.util.Date(it.lastModified())}") }
+        appendLine()
+        appendLine("-- guest data permissions (mode, host uid, owners-table row) --")
+        runCatching { dataPerms(p.root, p.owners) }.onSuccess { append(it) }.onFailure { appendLine("[failed: $it]") }
+    }
+
+    /** Mode / owners-table state of the directories behind the acore / gapps / dialer "Could not open database" crashes. */
+    private fun dataPerms(root: File, owners: File): String = buildString {
+        val rows = HashMap<String, String>()
+        if (owners.isFile) owners.forEachLine { l ->
+            val f = l.trim().split(Regex("\\s+"))
+            if (f.size >= 4) rows[f[0] + " " + f[1]] = "uid=" + f[2].toLong(16) + " gid=" + f[3].toLong(16)   // last row wins
+        }
+        fun line(rel: String) {
+            val f = File(root, rel)
+            val st = runCatching { android.system.Os.lstat(f.path) }.getOrNull()
+            if (st == null) { appendLine("$rel: missing"); return }
+            val key = String.format("%016x %016x", st.st_dev, st.st_ino)
+            appendLine("$rel: mode=${Integer.toOctalString(st.st_mode and 0xFFF)} hostUid=${st.st_uid} table=${rows[key] ?: "NO ROW (root)"}")
+        }
+        for (rel in listOf("data", "data/data", "data/user", "data/user/0")) line(rel)
+        for (pkg in listOf("com.android.providers.contacts", "com.google.android.gsf", "com.android.dialer",
+                "com.android.providers.media", "com.android.settings", "com.android.providers.telephony")) {
+            line("data/data/$pkg")
+            File(root, "data/data/$pkg").listFiles()?.sortedBy { it.name }?.forEach { line("data/data/$pkg/${it.name}") }
+        }
+        appendLine("owners table rows: ${rows.size}")
     }
 
     /**

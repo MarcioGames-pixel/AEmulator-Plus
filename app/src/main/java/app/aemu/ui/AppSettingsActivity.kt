@@ -1,5 +1,6 @@
 /* Modified for AEmulator Sunset through 2026-10-03: host display options, fork links, catalog,
- * experimental unlock and local license/notices. GPL-3.0; see NOTICE.md. */
+ * experimental unlock and local license/notices.
+ * Modified for AEmulator Plus, 2026-10-12: VM screen themes (replace the navigation bar style; merged from Super Plus). GPL-3.0; see NOTICE.md. */
 package app.aemu.ui
 
 import android.content.Context
@@ -130,6 +131,7 @@ private fun AppSettings(onBack: () -> Unit, onRestyle: () -> Unit) {
     var hostUi by remember { mutableStateOf(AppPrefs.hostUiOptions(ctx)) }
     val scope = rememberCoroutineScope()
     var autoUpdates by remember { mutableStateOf(AppPrefs.autoCheckUpdates(ctx)) }
+    var library3d by remember { mutableStateOf(AppPrefs.library3d(ctx)) }
     var updateState by remember { mutableStateOf<UpdateState>(UpdateState.Idle) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
 
@@ -235,6 +237,9 @@ private fun AppSettings(onBack: () -> Unit, onRestyle: () -> Unit) {
 
             item {
                 Section(stringResource(R.string.as_appearance)) {
+                    Toggle(stringResource(R.string.as_library_3d), stringResource(R.string.as_library_3d_sub), library3d) {
+                        library3d = it; AppPrefs.setLibrary3d(ctx, it)
+                    }
                     if (app.aemu.core.HostDisplayPolicy.rotateWindow(ctx.resources.configuration.smallestScreenWidthDp)) {
                         Toggle(stringResource(R.string.as_tablet_navbar_rotation), stringResource(R.string.as_tablet_navbar_rotation_sub), hostUi.tabletNavbarRotation) {
                             hostUi = hostUi.copy(tabletNavbarRotation = it); AppPrefs.setHostUiOptions(ctx, hostUi)
@@ -243,17 +248,8 @@ private fun AppSettings(onBack: () -> Unit, onRestyle: () -> Unit) {
                     Toggle(stringResource(R.string.as_cutout_barrier), stringResource(R.string.as_cutout_barrier_sub), hostUi.cutoutBarrier) {
                         hostUi = hostUi.copy(cutoutBarrier = it); AppPrefs.setHostUiOptions(ctx, hostUi)
                     }
-                    Text(stringResource(R.string.as_navbar_style), modifier = Modifier.padding(start = 16.dp, top = 8.dp))
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(false to R.string.as_navbar_original, true to R.string.as_navbar_sunset).forEach { (sunset, label) ->
-                            Row(Modifier.weight(1f).clickable {
-                                hostUi = hostUi.copy(sunsetNavbar = sunset); AppPrefs.setHostUiOptions(ctx, hostUi)
-                            }, verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = hostUi.sunsetNavbar == sunset, onClick = null)
-                                Text(stringResource(label))
-                            }
-                        }
-                    }
+                    // the navigation bar style is now part of the VM screen theme (Original, Sunset, 2.x-5.x eras, own themes)
+                    VmThemeRow()
                     Row_(Icons.Rounded.Translate, stringResource(R.string.as_language), langName) { langDialog = true }
                     Text(stringResource(R.string.as_theme), style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp))

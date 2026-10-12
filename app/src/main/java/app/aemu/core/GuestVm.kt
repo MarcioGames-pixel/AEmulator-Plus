@@ -99,6 +99,10 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
     val cameraSupported get() = engine == Engine.KK && img.api in 14..25 && !recoveryMode && !nativeUi
     private val camera = HostCameraBridge(ctx, paths, { settings.camera && cameraSupported }, ::log)
     fun cameraVisible(visible: Boolean) { camera.visible(visible) }
+    /** 4.x-прошивки пишут через входной поток нашего HAL; 2.x-движок входной поток не отдаёт. */
+    val microphoneSupported get() = engine == Engine.KK && img.api in 14..25 && !recoveryMode && !nativeUi
+    private val microphone = MicBridge(ctx, paths, { settings.microphone && microphoneSupported }, ::log)
+    fun micVisible(visible: Boolean) { microphone.visible(visible) }
     val bluetoothSupported get() = engine == Engine.KK && img.api in 9..25 && !recoveryMode && !nativeUi
     private val bluetooth = BluetoothBridge(ctx, paths, { settings.bluetooth && bluetoothSupported }, ::log)
     val wifiSupported get() = WifiEmu.supported(engine, img.api, recoveryMode, nativeUi)
@@ -107,7 +111,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         if (TreeFixer.isMtkAudio(paths.root)) "dev/aemu_pcm" else "dev/eac")
     val ril = RilStub(paths, ::log, img.settings.imei.ifBlank { VmSettings.DEFAULT_IMEI }, img.api,
         VmSettings.cleanBaseband(img.settings.baseband).ifBlank { VmSettings.DEFAULT_BASEBAND },
-        img.settings.networkType)
+        img.settings.networkType, img.settings.sim)
     val vold = VoldStub(paths, img.sdcardPath, ::log, others = img.volumes)
     var onFrame: (() -> Unit)? = null
     val frames = FrameBell(paths, ::log) { onFrame?.invoke() }
@@ -415,6 +419,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         paths.bin.mkdirs()
         runCatching { logFile.writeText("") }
         log("image \"${img.name}\": ${img.displayVersion}, ${img.skin}, engine ${engine.title}")
+        if (QemuFallback.enabled(paths)) log("translator: ${engine.qemuXperiaPlay} (patched guest mmap base)")
         if (!File(paths.root, "system/framework").isDirectory) error("firmware tree missing")
         if (MmiBoot.frameworkless(paths.root))
             error("this firmware has no Android framework (system/framework/framework.jar) and no native MMI/FTM test program to run instead")
@@ -546,6 +551,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                 File(paths.root, "data/system/aemu-setup-skip.properties").isFile))
             fixer.restoreSonySetupFlow()
         fixer.noScreenSleep()
+        if (s.skipSetupWizard) fixer.provisionBeforeBoot()
         props.onSet = { k, v -> onProp(k, v) }
         props.onCtl = { start, svc -> onCtl(start, svc) }
 
@@ -559,6 +565,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         vibration.serve()
         motion.serve()
         if (s.camera && cameraSupported) camera.serve()
+        if (s.microphone && microphoneSupported) microphone.serve()
         if (s.bluetooth && bluetoothSupported) bluetooth.serve()
         frames.serve()
         if (s.radio) ril.serve() else log("radio: emulation disabled in settings")
@@ -673,6 +680,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
             svc.waitSocket?.let { sock -> waitFor("socket $sock", 20_000) { paths.socket(sock).exists() } }
             if (svc.delayMs > 0) Thread.sleep(svc.delayMs)
             if (svc.name == "surfaceflinger") startTouchWizBootMedia()
+            if (svc.name == "installd") watchUserZeroLink()
         }
         if (!glDone) glUp()
         startTouchWizBootMedia() // no-op if already started above (e.g. a plan without surfaceflinger)
@@ -704,6 +712,32 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
             }, "google-app-option").start()
         }
         watchdog()
+    }
+
+    /**
+     * The guest's installd (4.2+) rewrites /data/user/0 as the absolute link "/data/data/" on every start. qemu resolves an
+     * absolute link target on the HOST (the phone's own /data/data), so every app path /data/user/0/<pkg> lands in a
+     * directory the guest cannot enter: "Unable to create cache directory", contacts2.db / gservices.db EACCES, and the
+     * acore, gapps and dialer crash loops. The relative link "../data" resolves inside the guest tree, so put it back
+     * whenever installd (also after its restarts) replaces it.
+     */
+    @Volatile private var user0Watcher: Thread? = null
+    private fun watchUserZeroLink() {
+        if (img.api < 14 || user0Watcher?.isAlive == true) return
+        user0Watcher = Thread({
+            val link = File(paths.root, "data/user/0").absolutePath
+            while (!stopping) {
+                runCatching {
+                    val cur = android.system.Os.readlink(link)
+                    if (cur != "../data") {
+                        android.system.Os.remove(link)
+                        android.system.Os.symlink("../data", link)
+                        log("data/user/0: link was \"$cur\", restored ../data")
+                    }
+                }
+                try { Thread.sleep(200) } catch (_: InterruptedException) { return@Thread }
+            }
+        }, "user0-link").apply { isDaemon = true; start() }
     }
 
     @Volatile private var runnerRef: GuestRunner? = null
@@ -853,7 +887,21 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
             }
             val code = runCatching { p.waitFor() }.getOrDefault(-1)
             if (!stopping) log("· $name exited, code $code")
+            if (!stopping && code != 0 && !QemuFallback.enabled(paths) &&
+                runCatching { QemuFallback.isLinkFailure(QemuFallback.lastRun(log.readText(), name)) }.getOrDefault(false))
+                fallbackToPatchedQemu(name)
         }, "log-$name").apply { isDaemon = true; start() }
+    }
+
+    private val qemuFallbackStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** A 2.x guest linker could not map its first library (stock qemu holds 0x40000000): reboot with the patched translator. */
+    private fun fallbackToPatchedQemu(service: String) {
+        if (!qemuFallbackStarted.compareAndSet(false, true)) return
+        if (!paths.nativeBin(engine.qemuXperiaPlay).canExecute()) { log("$service: ${engine.qemuXperiaPlay} is not available"); return }
+        if (!QemuFallback.enable(paths)) { log("$service: cannot remember the translator choice"); return }
+        log("$service: guest linker reported \"${QemuFallback.ERROR}\", restarting with ${engine.qemuXperiaPlay}")
+        onPower?.invoke(true, "")
     }
 
     private fun alive(): List<String> = synchronized(procs) { procs.filterValues { it.isAlive }.keys.toList() }
@@ -1244,6 +1292,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         vibration.stop()
         battery.stop()
         camera.stop()
+        microphone.stop()
         bluetooth.stop()
         motion.stop()
         runCatching { guestRunner.run(listOf("/system/bin/sync"), 5_000) }

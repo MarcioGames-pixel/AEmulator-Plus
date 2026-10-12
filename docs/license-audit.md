@@ -32,8 +32,14 @@ source/build scripts in this checkout (only `libaemuhost.so` has the
 
 There are also inherited guest assets without an established exact source
 mapping, including `libashmemshim.so`, `libGLES*.so` (other than the source-backed
-split wrapper), gralloc, Gingerbread camera, original audio-policy/HAL binaries
-and helper executables/JARs. Their individual origins and licenses still need
+split wrapper), gralloc, Gingerbread camera, the audio-policy binaries, the
+HTC-layout `audio.primary.default.so` and helper executables/JARs.
+
+The other six audio HAL libraries (`audio.primary.aosp/directtrack/ics/
+ics-qcom/ics-samsung/mtk.so`) are no longer in this category as of 2026-10-11:
+they are built from `native/audiohal/audio_hal.c` by `native/audiohal/build.sh`
+(NDK) or `build-zig.sh`, and were regenerated from that source for the
+microphone change. Their individual origins and licenses still need
 verification. Source-present is not proof of a binary/source match.
 
 Inspection of the checkout and upstream README did not establish a pinned

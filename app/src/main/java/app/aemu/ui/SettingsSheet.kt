@@ -1,4 +1,5 @@
 /* Modified for AEmulator Sunset, 2026-10-03: VM export, motion and host resolution.
+ * Modified for AEmulator Super Plus, 2026-10-11: fake SIM card section, Wi-Fi signal and neighbours.
  * GPL-3.0; upstream attribution retained in NOTICE.md. */
 package app.aemu.ui
 
@@ -153,6 +154,9 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
             if (img.api in 14..25) {
                 Toggle(stringResource(R.string.vs_camera), stringResource(R.string.vs_camera_sub), s.camera) { s = s.copy(camera = it) }
             }
+            if (img.api in 14..25) {
+                Toggle(stringResource(R.string.vs_microphone), stringResource(R.string.vs_microphone_sub), s.microphone) { s = s.copy(microphone = it) }
+            }
 
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.vs_radio_title), style = MaterialTheme.typography.titleMedium)
@@ -164,6 +168,7 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
                 TextButton(onClick = { s = s.copy(imei = VmSettings.randomImei()) }) { Text(stringResource(R.string.vs_random)) }
             }
             if (s.radio) NetworkTypePicker(s.networkType, img.api) { s = s.copy(networkType = it) }
+            if (s.radio) SimSection(img, s) { s = it }
 
             Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.vs_device_id), style = MaterialTheme.typography.titleMedium)
@@ -278,6 +283,23 @@ private fun WifiFields(s: VmSettings, set: (VmSettings) -> Unit) {
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = { TextButton(onClick = { show = !show }) { Text(stringResource(if (show) R.string.vs_wifi_hide else R.string.vs_wifi_show)) } },
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
+    var open by remember { mutableStateOf(false) }
+    fun bars(n: Int) = "▂▄▆█".take(n) + "·".repeat(WifiEmu.MAX_BARS - n)
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.vs_wifi_signal)) },
+        supportingContent = { Text(stringResource(R.string.vs_wifi_signal_sub)) },
+        trailingContent = {
+            Box {
+                TextButton(onClick = { open = true }) { Text(bars(s.wifiSignal)) }
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    for (n in WifiEmu.MAX_BARS downTo 1) DropdownMenuItem(text = { Text(bars(n)) }, onClick = { open = false; set(s.copy(wifiSignal = n)) })
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Toggle(stringResource(R.string.vs_wifi_neighbors), stringResource(R.string.vs_wifi_neighbors_sub), s.wifiNeighbors) { set(s.copy(wifiNeighbors = it)) }
 }
 
 /** Disabled / 0° / 180° / no-gyroscope list for the host motion sensors. */

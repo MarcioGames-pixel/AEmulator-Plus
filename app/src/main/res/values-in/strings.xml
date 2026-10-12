@@ -212,6 +212,9 @@
     <string name="update_open_github">Lihat di GitHub</string>
     <string name="vs_camera">Kamera host (eksperimental)</string>
     <string name="vs_camera_sub">ROM HAL1: pratinjau dan foto 640×480, kamera belakang/depan. Memerlukan izin dan restart VM penuh. Kamera menutup saat AEmulator berada di latar belakang; buka lagi aplikasi kamera tamu. Tanpa perekaman video.</string>
+    <string name="vs_microphone">Mikrofon host (eksperimental)</string>
+    <string name="vs_microphone_sub">Aplikasi tamu merekam dari mikrofon ponsel (perekam suara, catatan). Memerlukan izin dan restart VM penuh. Perekaman berhenti saat AEmulator di latar belakang; buka lagi aplikasi perekam tamu. Hanya ROM 4.x.</string>
+    <string name="microphone_permission_denied">Izin mikrofon ditolak. Aplikasi tamu akan merekam keheningan; berikan izin di pengaturan aplikasi Android dan restart VM sepenuhnya.</string>
     <string name="camera_permission_denied">Izin kamera ditolak. ROM akan boot tanpa akses ke kamera host; berikan izin di pengaturan aplikasi Android dan restart VM sepenuhnya untuk mencoba lagi.</string>
     <string name="vs_skip_setup">Lewati wizard penyiapan</string>
     <string name="vs_skip_setup_sub">Menandai penyiapan selesai dan menonaktifkan aplikasi penyiapan yang dikenali pada boot penuh berikutnya. Mematikannya tidak mengatur ulang penyiapan yang sudah selesai. Dukungan OEM dapat berbeda-beda.</string>

@@ -46,6 +46,14 @@ public final class FirmwareToolset {
         public Artifact(File f, Role r, boolean c) { file=f; role=r; cleanup=c; }
     }
 
+    /**
+     * Motorola SBF: the newer "Multi-Interface Boot File" (Xoom and later) and the older "P2K Superfile" (Defy / Jordan and
+     * other OMAP-era phones, "CSF Protected UNIX Generated Superfile"). Both carry the same record chain after the header.
+     */
+    static boolean isSbfHeader(byte[] h) {
+        return starts(h, "Multi-Interface") || starts(h, "P2K Superfile");
+    }
+
     public static String detect(File f) throws IOException {
         byte[] h = readHead(f, 4096);
         // HTC containers first: their first bytes are a random RSA signature / a PE header, so they must not reach the checks below
@@ -57,7 +65,7 @@ public final class FirmwareToolset {
         if (h.length >= 4 && u32(h,0) == 0xAA55A5A5L) return "LG_BIN";
         if (h.length >= 4 && u32(h,0) == 0xAA55DD44L) return "LG_TOT";
         if (h.length >= 8 && utf16(h,0,44).startsWith("BP_R")) return "PAC";
-        if (starts(h, "Multi-Interface")) return "SBF";
+        if (isSbfHeader(h)) return "SBF";
         if (starts(h, "HTCIMAGE")) return "NBH";
         if (h.length >= 4 && u32(h,0) == 0xED26FF3AL) return "SPARSE";
         if (h.length >= 4 && (u32(h,0) == 0x414C5030L || starts(h, "LP\u00fe\u00ff"))) return "SUPER";
@@ -385,7 +393,8 @@ public final class FirmwareToolset {
 
     // ===== SBF =================================================================
     /**
-     * Motorola "Multi-Interface Boot File".
+     * Motorola "Multi-Interface Boot File" and "P2K Superfile" (same record chain, different header; the P2K one has
+     * a ~320 KB header area in front of the first record; its system partition is ext3).
      *
      * Layout (verified on Xoom EVRSU / HUBWF dumps; both files tile exactly to EOF):
      *   "Multi-Interface\0", zero fill, a ~3 MiB signature / PKI blob, then records back to back
@@ -430,7 +439,7 @@ public final class FirmwareToolset {
                 byte[] magic = new byte[15];
                 if (len < magic.length) throw new IOException("not SBF");
                 raf.readFully(magic);
-                if (!starts(magic, "Multi-Interface")) throw new IOException("not SBF");
+                if (!isSbfHeader(magic)) throw new IOException("not SBF");
 
                 List<Rec> recs = parseRecords(raf, len, log);
                 if (recs.isEmpty()) throw new IOException("SBF: no records found (unsupported SBF layout)");

@@ -11,7 +11,7 @@ from keys import KEYS  # noqa: E402
 # код языка → каталог ресурсов Android
 DIRS = {
     "en": "values", "ru": "values-ru", "uk": "values-uk", "de": "values-de", "fr": "values-fr",
-    "es": "values-es", "pt-BR": "values-pt-rBR", "it": "values-it", "pl": "values-pl", "tr": "values-tr",
+    "es": "values-es", "pt-BR": "values-pt-rBR", "pt-PT": "values-pt-rPT", "it": "values-it", "pl": "values-pl", "tr": "values-tr",
     "ar": "values-ar", "fa": "values-fa", "hi": "values-hi", "id": "values-in", "vi": "values-vi",
     "zh-CN": "values-zh-rCN", "ja": "values-ja", "ko": "values-ko",
 }

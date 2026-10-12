@@ -57,6 +57,24 @@ class InputService(private val paths: VmPaths, private val log: (String) -> Unit
     private var pumpStarted = false
     private var wasDown = false
 
+    private var lastConnectPid = Int.MIN_VALUE
+    private var lastConnectLogAt = 0L
+    private var suppressedConnects = 0
+
+    /**
+     * A guest daemon that keeps retrying open("/dev/input/event0") (lidswitchd, slidercounter) reconnects many times a
+     * second; log the first connect of a pid and then at most one summary line per 5 s instead of one line each.
+     */
+    @Synchronized
+    private fun logConnect(pid: Int) {
+        val now = SystemClock.uptimeMillis()
+        if (pid != lastConnectPid || now - lastConnectLogAt >= 5000) {
+            val extra = if (suppressedConnects > 0) ", +$suppressedConnects reconnects" else ""
+            log("input: guest connected (pid $pid, clients ${clients.size}$extra)")
+            lastConnectPid = pid; lastConnectLogAt = now; suppressedConnects = 0
+        } else suppressedConnects++
+    }
+
     private val server = UnixServer(paths.inputSock, "input") { c ->
         runCatching { c.sendBufferSize = 64 * 1024 }
         val pid = runCatching { c.peerCredentials.pid }.getOrDefault(-1)
@@ -65,7 +83,7 @@ class InputService(private val paths: VmPaths, private val log: (String) -> Unit
         }
         val me = Client(c.outputStream, pid)
         clients.add(me)
-        log("input: guest connected (pid $pid, clients ${clients.size})")
+        logConnect(pid)
         // держим соединение, пока гость его не закроет
         val ins = c.inputStream
         val buf = ByteArray(64)

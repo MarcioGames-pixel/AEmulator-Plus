@@ -212,6 +212,9 @@
     <string name="update_open_github">在 GitHub 上查看</string>
     <string name="vs_camera">主机摄像头（实验性）</string>
     <string name="vs_camera_sub">HAL1 ROM：640×480 预览和拍照，支持后置/前置摄像头。需要授权并完全重启虚拟机。AEmulator 进入后台时摄像头会关闭；请重新打开客户机的相机应用。不支持录像。</string>
+    <string name="vs_microphone">主机麦克风（实验性）</string>
+    <string name="vs_microphone_sub">客户机应用可通过手机麦克风录音（录音机、备忘录）。需要授权并完全重启虚拟机。AEmulator 进入后台时录音会停止；请重新打开客户机的录音应用。仅支持 4.x ROM。</string>
+    <string name="microphone_permission_denied">麦克风权限被拒绝。客户机应用将录制静音；请在 Android 应用设置中授予权限，并完全重启虚拟机后重试。</string>
     <string name="camera_permission_denied">摄像头权限被拒绝。ROM 将在无法访问主机摄像头的情况下启动；请在 Android 应用设置中授予权限，并完全重启虚拟机后重试。</string>
     <string name="vs_skip_setup">跳过设置向导</string>
     <string name="vs_skip_setup_sub">在下次完整启动时，将设置标记为已完成，并停用已识别的设置应用。关闭此选项不会重置已完成的设置。对 OEM 的支持情况可能有所不同。</string>

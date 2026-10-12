@@ -212,6 +212,9 @@
     <string name="update_open_github">Vedi su GitHub</string>
     <string name="vs_camera">Fotocamera dell’host (sperimentale)</string>
     <string name="vs_camera_sub">ROM HAL1: anteprima e foto 640×480, fotocamera posteriore/anteriore. Richiede un’autorizzazione e un riavvio completo della VM. La fotocamera si chiude quando AEmulator passa in background; riapri l’app fotocamera dell’ospite. Nessuna registrazione video.</string>
+    <string name="vs_microphone">Microfono dell’host (sperimentale)</string>
+    <string name="vs_microphone_sub">Le app ospiti registrano dal microfono del telefono (registratore, note). Richiede un’autorizzazione e un riavvio completo della VM. La registrazione si ferma quando AEmulator passa in background; riapri l’app di registrazione dell’ospite. Solo ROM 4.x.</string>
+    <string name="microphone_permission_denied">Autorizzazione al microfono negata. Le app ospiti registreranno silenzio; concedi l’autorizzazione nelle impostazioni Android dell’app e riavvia completamente la VM per riprovare.</string>
     <string name="camera_permission_denied">Autorizzazione della fotocamera negata. La ROM si avvierà senza accesso alla fotocamera dell’host; concedi l’autorizzazione nelle impostazioni Android dell’app e riavvia completamente la VM per riprovare.</string>
     <string name="vs_skip_setup">Salta la configurazione guidata</string>
     <string name="vs_skip_setup_sub">Segna la configurazione come completata e disattiva le app di configurazione riconosciute al prossimo avvio completo. Disattivarlo non annulla una configurazione già completata. Il supporto può variare a seconda del produttore.</string>

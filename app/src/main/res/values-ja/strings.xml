@@ -212,6 +212,9 @@
     <string name="update_open_github">GitHubで見る</string>
     <string name="vs_camera">ホストのカメラ（実験的）</string>
     <string name="vs_camera_sub">HAL1 ROM：640×480のプレビューと写真、背面/前面カメラ。権限と仮想マシンの完全な再起動が必要です。AEmulatorがバックグラウンドになるとカメラは閉じます。ゲストのカメラアプリを開き直してください。動画の録画はできません。</string>
+    <string name="vs_microphone">ホストのマイク（実験的）</string>
+    <string name="vs_microphone_sub">ゲストアプリがスマートフォンのマイクで録音します（ボイスレコーダー、メモ）。権限と仮想マシンの完全な再起動が必要です。AEmulatorがバックグラウンドになると録音は停止します。ゲストの録音アプリを開き直してください。4.x ROMのみ。</string>
+    <string name="microphone_permission_denied">マイクの権限が拒否されました。ゲストアプリは無音を録音します。Androidのアプリ設定で権限を許可し、仮想マシンを完全に再起動してもう一度お試しください。</string>
     <string name="camera_permission_denied">カメラの権限が拒否されました。ROMはホストのカメラにアクセスできない状態で起動します。Androidのアプリ設定で権限を許可し、仮想マシンを完全に再起動してもう一度お試しください。</string>
     <string name="vs_skip_setup">セットアップウィザードをスキップ</string>
     <string name="vs_skip_setup_sub">次回の完全起動時に、セットアップを完了済みにし、認識されたセットアップアプリを無効にします。オフにしても、完了済みのセットアップは元に戻りません。OEMへの対応状況は異なる場合があります。</string>

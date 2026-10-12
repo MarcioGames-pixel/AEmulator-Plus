@@ -144,7 +144,7 @@ object ElfPatch {
     fun fixPldHints(f: File): Int {
         if (f.length() < 64 || f.length() > 64L shl 20) return 0
         val d = runCatching { f.readBytes() }.getOrNull() ?: return 0
-        val fixes = pldHintOffsets(d)
+        val fixes = pldHintOffsets(d, f.name)
         if (fixes.isEmpty()) return 0
         val b = ByteBuffer.wrap(d).order(ByteOrder.LITTLE_ENDIAN)
         if (!f.canWrite()) f.setWritable(true, true)
@@ -158,7 +158,11 @@ object ElfPatch {
     }
 
     /** File offsets of the words [fixPldHints] rewrites in the bytes [d] of an ELF file (none unless it is a 32-bit ARM ELF). */
-    fun pldHintOffsets(d: ByteArray): List<Int> {
+    fun pldHintOffsets(d: ByteArray, name: String? = null): List<Int> {
+        val modes = functionModes(d)
+        // Only bionic itself carries the hand-written ARM memcpy with the malformed hints; anything else without a symbol
+        // that proves ARM mode is Thumb-2 code in disguise (libart.so, libLLVM.so, ... lost 46 calls to this).
+        val bionic = name == null || name == "libc.so" || name == "linker"
         if (d.size < 64 || d[0] != 0x7f.toByte() || d[1] != 'E'.code.toByte() || d[4] != 1.toByte()) return emptyList()
         val b = ByteBuffer.wrap(d).order(ByteOrder.LITTLE_ENDIAN)
         if (b.getShort(18).toInt() != 40) return emptyList()
@@ -175,11 +179,52 @@ object ElfPatch {
             var o = start
             while (o < end) {
                 val w = b.getInt(o)
-                if (pldNeedsFix(w) && pldNear(b, o, start, segEnd) && armAround(b, o, start, segEnd)) fixes.add(o)
+                if (pldNeedsFix(w) && pldNear(b, o, start, segEnd) && armAround(b, o, start, segEnd)) {
+                    val va = (b.getInt(ph + 8).toLong() and 0xffffffffL) + (o - b.getInt(ph + 4))
+                    val arm = modes.armAt(va)
+                    if (arm == true || (arm == null && bionic)) fixes.add(o)
+                }
                 o += 4
             }
         }
         return fixes
+    }
+
+    /** Function symbols with a size, as virtual-address ranges; the low bit of the value tells Thumb (1) from ARM (0). */
+    class FunctionModes(private val starts: LongArray, private val ends: LongArray, private val thumb: BooleanArray) {
+        /** true: inside an ARM function, false: inside a Thumb function, null: no symbol covers [va]. */
+        fun armAt(va: Long): Boolean? {
+            var lo = 0; var hi = starts.size - 1; var best = -1
+            while (lo <= hi) { val mid = (lo + hi) ushr 1; if (starts[mid] <= va) { best = mid; lo = mid + 1 } else hi = mid - 1 }
+            // ranges may nest or overlap (aliases): look a little further back for one that still covers va
+            var i = best
+            var steps = 0
+            while (i >= 0 && steps < 8) { if (va < ends[i]) return !thumb[i]; i--; steps++ }
+            return null
+        }
+    }
+
+    fun functionModes(d: ByteArray): FunctionModes {
+        val s = ArrayList<LongArray>()
+        if (d.size >= 52 && d[0] == 0x7f.toByte() && d[4] == 1.toByte()) {
+            val b = ByteBuffer.wrap(d).order(ByteOrder.LITTLE_ENDIAN)
+            val shoff = b.getInt(32); val shentsize = b.getShort(46).toInt() and 0xffff; val shnum = b.getShort(48).toInt() and 0xffff
+            if (shoff > 0 && shoff + shnum * shentsize <= d.size) for (i in 0 until shnum) {
+                val sh = shoff + i * shentsize
+                val t = b.getInt(sh + 4)
+                if (t != 11 && t != 2) continue // SHT_DYNSYM, SHT_SYMTAB
+                val off = b.getInt(sh + 16); val size = b.getInt(sh + 20)
+                var q = off
+                while (q + 16 <= off + size && q + 16 <= d.size) {
+                    val value = b.getInt(q + 4).toLong() and 0xffffffffL; val sz = b.getInt(q + 8).toLong() and 0xffffffffL
+                    if ((d[q + 12].toInt() and 0xf) == 2 && value != 0L && sz > 0L)
+                        s.add(longArrayOf(value and 1L.inv(), (value and 1L.inv()) + sz, value and 1L))
+                    q += 16
+                }
+            }
+        }
+        s.sortBy { it[0] }
+        return FunctionModes(LongArray(s.size) { s[it][0] }, LongArray(s.size) { s[it][1] }, BooleanArray(s.size) { s[it][2] == 1L })
     }
 
     /** ARM PLD/PLDW with a base register other than pc (the literal form is left alone). */

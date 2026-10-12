@@ -212,6 +212,9 @@
     <string name="update_open_github">Auf GitHub ansehen</string>
     <string name="vs_camera">Host-Kamera (experimentell)</string>
     <string name="vs_camera_sub">HAL1-ROMs: 640×480-Vorschau und Fotos, Rück-/Frontkamera. Erfordert eine Berechtigung und einen vollständigen VM-Neustart. Die Kamera wird geschlossen, wenn AEmulator in den Hintergrund wechselt; öffne die Kamera-App im Gast erneut. Keine Videoaufnahme.</string>
+    <string name="vs_microphone">Host-Mikrofon (experimentell)</string>
+    <string name="vs_microphone_sub">Gast-Apps nehmen über das Telefonmikrofon auf (Diktiergerät, Notizen). Erfordert eine Berechtigung und einen vollständigen VM-Neustart. Die Aufnahme stoppt, wenn AEmulator in den Hintergrund wechselt; öffne die Aufnahme-App im Gast erneut. Nur 4.x-ROMs.</string>
+    <string name="microphone_permission_denied">Mikrofon-Berechtigung verweigert. Gast-Apps nehmen Stille auf; erteile die Berechtigung in den Android-App-Einstellungen und starte die VM vollständig neu, um es erneut zu versuchen.</string>
     <string name="camera_permission_denied">Kamera-Berechtigung verweigert. Das ROM startet ohne Zugriff auf die Host-Kamera; erteile die Berechtigung in den Android-App-Einstellungen und starte die VM vollständig neu, um es erneut zu versuchen.</string>
     <string name="vs_skip_setup">Einrichtungsassistent überspringen</string>
     <string name="vs_skip_setup_sub">Markiert die Einrichtung als abgeschlossen und deaktiviert erkannte Einrichtungs-Apps beim nächsten vollständigen Start. Ausschalten setzt eine abgeschlossene Einrichtung nicht zurück. Die Unterstützung kann je nach Hersteller variieren.</string>

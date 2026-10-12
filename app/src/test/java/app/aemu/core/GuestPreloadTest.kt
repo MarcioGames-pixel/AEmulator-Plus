@@ -12,7 +12,7 @@ class GuestPreloadTest {
     @get:Rule val tmp = TemporaryFolder()
 
     @Test fun bionicFirmwareKeepsBothShims() {
-        assertEquals("/system/lib/libashmemshim.so:/system/lib/libaemushim.so", GuestPreload.value(false))
+        assertEquals("/system/lib/libashmemshim.so:/system/lib/libaemushim.so:/system/lib/libaemurlimit.so", GuestPreload.value(false))
         val root = tmp.newFolder()
         File(root, "system/bin").mkdirs(); File(root, "system/bin/linker").writeText("x")
         assertFalse(GuestPreload.isGlibcFirmware(root))

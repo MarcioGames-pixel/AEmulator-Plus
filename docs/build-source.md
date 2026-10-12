@@ -1,6 +1,6 @@
 # Building AEmulator Plus
 
-Updated 2026-10-04. AEmulator Plus is a modified fork of
+Updated 2026-10-11. AEmulator Plus is a modified fork of
 [drel4/AEmulator-Sunset](https://github.com/drel4/AEmulator-Sunset) (itself a fork of
 [uxazu/AEmulator](https://github.com/uxazu/AEmulator)); see [NOTICE.md](../NOTICE.md).
 Replace `<tag>` below with the Plus release tag you want to build.
@@ -58,6 +58,11 @@ sh native/setupctl/build.sh
 
 - `guestshim`: preload shim, recovery shim and `aemu_true.so`.
 - `audiohal`: AOSP, Sony DIRECTTRACK, ICS/Qualcomm and MTK audio HAL variants.
+  `native/audiohal/build-zig.sh` is a fallback that builds the same six
+  libraries with `zig cc` (Thumb-2, LLVM) for environments without the NDK;
+  it links against stub `libc.so`/`libdl.so` carrying the `@LIBC` symbol
+  versions bionic expects. Guest microphone input (`/dev/aemu_mic`, host side
+  in `app/.../core/MicBridge.kt`) ships in these libraries.
 - `camerahal`: `camera.aemu_host.so`, the experimental HAL1 bridge.
 - `sensorhal`: `sensors.aemu_host.so`, the experimental legacy motion-sensor
   bridge. Its host transport/lifecycle smoke test is `sh native/sensorhal/tests/run.sh`
@@ -70,7 +75,9 @@ sh native/setupctl/build.sh
 
 JVM tests run via `testReleaseUnitTest`. Guest shim/audio/camera smoke
 tests have `tests/run.sh` scripts and require `qemu-arm` plus an ARM cross
-compiler; camera Bionic tests also require a separately supplied stock guest
+compiler (the audio test also runs under `native/audiohal/tests/run_arm.py`,
+a Unicorn-based runner for machines without `qemu-arm`; it needs python3 with
+`pyelftools` and `unicorn`); camera Bionic tests also require a separately supplied stock guest
 fixture and user/PID namespace support (see `native/camerahal/README.md`).
 Setup policy tests are in `native/setupctl/tests/PolicyTest.java`.
 

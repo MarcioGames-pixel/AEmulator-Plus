@@ -31,7 +31,8 @@ class GuestRunner(
     private fun isEnvToken(t: String) = !t.startsWith("-") && Regex("^[A-Z_][A-Z0-9_]*=").containsMatchIn(t)
 
     val engine: Engine get() = img.engine
-    val qemu: File get() = paths.nativeBin(engine.qemu)
+    val qemu: File get() = paths.nativeBin(
+        if (QemuFallback.enabled(paths) && paths.nativeBin(engine.qemuXperiaPlay).canExecute()) engine.qemuXperiaPlay else engine.qemu)
     val runner: File get() = paths.nativeBin(engine.runner)
 
     fun cmdline(argv: List<String>, propsFile: File? = null): List<String> {

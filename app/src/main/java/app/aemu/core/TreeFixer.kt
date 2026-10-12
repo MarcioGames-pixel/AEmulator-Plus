@@ -1,4 +1,5 @@
 /* Modified for AEmulator Sunset, 2026-10-03: source-backed host motion HAL.
+ * Modified for AEmulator Super Plus, 2026-10-11: camcorder profiles for video.
  * GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.core
 
@@ -79,6 +80,12 @@ class TreeFixer(
         }
         // 3. аппаратные кодеки OMX переполняют стек OMXMaster и роняют mediaserver
         for (rel in listOf("system/lib/libstagefrighthw.so", "vendor/lib/libstagefrighthw.so", "system/vendor/lib/libstagefrighthw.so")) park(File(root, rel))
+        // 3b. Qualcomm libavenhancements.so (/vendor/lib): libmedia/libstagefright/libmedia_jni dlopen() it by name, so zygote and every
+        // app_process helper load it, and it drags in libmediaplayerservice, libstagefright_wfd, libExtendedExtractor and libdashplayer
+        // (strace: openat chain in zygote). DashPlayer's weak symbols then override the real ones and every ART process dies with
+        // SIGSEGV at a heap address, lr = libdashplayer+0xc003 (Razer Forge, API 23). The callers treat a failed dlopen as "no
+        // extensions" and use the stock code paths; mediaserver does not need it either.
+        for (rel in listOf("system/lib/libavenhancements.so", "vendor/lib/libavenhancements.so", "system/vendor/lib/libavenhancements.so")) park(File(root, rel))
         // 4. заслонки ядра: /dev/binder как каталог, группы планировщика
         File(root, "dev/binder").takeIf { it.isDirectory }?.let { wipe(it) }
         File(root, "dev/cpuctl").takeIf { it.exists() }?.let { wipe(it) }
@@ -128,6 +135,7 @@ class TreeFixer(
         // They also replace the firmware's own libGLES_android.so, so use the firmware's software renderer instead.
         eglConfig(img.settings.gpu && !GuestPreload.isGlibcFirmware(root))
         makeDataDirs()
+        fixDataRootAccess()
         runCatching {
             if (GuestRootAliases.ensureEtc(root)) log("init: restored /etc -> /system/etc alias")
         }.onFailure { log("init: could not prepare /etc alias: ${it.message}") }
@@ -470,6 +478,11 @@ class TreeFixer(
 
     private fun installCameraHal() {
         val enabled = img.settings.camera && engine == Engine.KK && img.api in 14..25
+        // video: the camera app records the camcorder profile's size, which the bridge has to deliver (640x480)
+        runCatching {
+            if (CamcorderProfiles.configure(root, enabled))
+                log(if (enabled) "camera: camcorder profiles set to ${CamcorderProfiles.WIDTH}x${CamcorderProfiles.HEIGHT} (original kept)" else "camera: original camcorder profiles restored")
+        }.onFailure { log("camera: camcorder profiles not changed: ${it.message}") }
         val destination = File(root, "system/lib/hw/camera.aemu_host.so")
         if (!enabled) {
             if (CameraHalFallback.configure(root, destination, false)) log("camera: restored previous default HAL slot")
@@ -498,6 +511,8 @@ class TreeFixer(
 
     private fun installSensorHal() {
         if (img.api !in 9..25) return
+        val legacyApi = File(root, "system/lib/libsensorservice.so").takeIf { it.isFile }
+            ?.let { runCatching { SensorHalApi.controlDataOnly(it.readBytes()) }.getOrDefault(false) } == true
         // Park OEM names too: old libhardware loaders can ignore ro.hardware.sensors.
         val parked = File(root, "system/.aemu-parked").apply { mkdirs() }
         for (directory in listOf("system/lib/hw", "vendor/lib/hw", "system/vendor/lib/hw")) {
@@ -505,6 +520,14 @@ class TreeFixer(
                 val dest = File(parked, (directory + "/" + file.name).replace('/', '#'))
                 if (!dest.exists()) check(file.renameTo(dest)) { "Cannot park sensor HAL" } else check(file.delete())
             }
+        }
+        if (legacyApi) {
+            // This SensorService opens the "control" and "data" HAL devices and never checks the result; the stand-in HAL
+            // only has "poll", so both pointers stayed uninitialised and system_server died in SensorDevice::SensorDevice().
+            // With no module at all it logs "couldn't load sensors module" and runs without sensors.
+            for (name in listOf("sensors.aemu_host.so", "sensors.default.so")) File(root, "system/lib/hw/$name").delete()
+            log("motion: this firmware's SensorService needs the control/data sensor HAL, which the engine lacks; guest runs without sensors")
+            return
         }
         for (name in listOf("sensors.aemu_host.so", "sensors.default.so")) {
             val file = File(root, "system/lib/hw/$name")
@@ -570,7 +593,7 @@ class TreeFixer(
                 runCatching { Os.symlink("libGLES_android.so", sw.path) }
         }
         for ((from, to) in (copies + nougat).filter { !noBridge || !it.second.startsWith("system/lib/egl/libGLES_") } +
-            listOf("@libaemushim.so" to "system/lib/libaemushim.so") +
+            listOf("@libaemushim.so" to "system/lib/libaemushim.so", "@libaemurlimit.so" to GuestPreload.RLIMIT.removePrefix("/")) +
             // glibc (Google TV) firmware: fake /dev/shm_cache and /dev/shm_noncache so av_settings & co. can start
             (if (GuestPreload.isGlibcFirmware(root)) listOf("@libshmshim.so" to GuestPreload.SHMSHIM.removePrefix("/")) else emptyList())) {
             val dst = File(root, to)
@@ -1093,12 +1116,42 @@ class TreeFixer(
         if (made > 0) log("created init directories: $made")
     }
 
+    /**
+     * /data and /data/data are made by mkdirs() (host mode 0700) and nothing owns them in the owners table, so the guest
+     * sees root:root 0700 and no app uid can walk to /data/data/<pkg>: stat of an existing cache dir fails (getCacheDir
+     * logs "Unable to create cache directory"), contacts2.db / gservices.db open with EACCES. Stock Android has both
+     * as system:system 0771. Runs every boot so existing trees are repaired.
+     */
+    private fun fixDataRootAccess() = runCatching {
+        val have = if (paths.owners.isFile) paths.owners.readLines().map { it.trim() }.toHashSet() else hashSetOf()
+        val sb = StringBuilder()
+        for (rel in listOf("data", "data/data")) {
+            val f = File(root, rel)
+            if (!f.isDirectory || isLink(f)) continue
+            Os.chmod(f.absolutePath, 0x1F9) // 0771
+            val st = Os.lstat(f.absolutePath)
+            val row = String.format("%016x %016x %08x %08x", st.st_dev, st.st_ino, 1000, 1000)
+            if (row !in have) sb.append(row).append('\n')
+        }
+        if (sb.isNotEmpty()) { paths.owners.appendText(sb.toString()); log("data: /data and /data/data set to system 0771") }
+    }.onFailure { log("data: could not fix /data access: ${it.message}") }
+
     private fun makeUserZeroLink() {
         if (img.api < 14) return // ICS installd creates /data/user/0 too; an absolute link points at the host /data
         // 7.0+: vold prepares the device-encrypted per-user dirs; without it installd cannot create app DE storage
         if (img.api >= 24) for (d in listOf("data", "user_de/0", "misc_ce/0", "misc_de/0", "system_ce/0", "system_de/0", "media/0", "misc/profiles/cur/0", "misc/profiles/ref"))
-            File(root, "data/$d").mkdirs()
+            File(root, "data/$d").apply { mkdirs() }.let { dir ->
+                // every parent up to data/ must stay traversable for app uids as well
+                var p: File? = dir
+                while (p != null && p != File(root, "data")) { makeTraversable(p); p = p.parentFile }
+            }
         val user = File(root, "data/user").apply { mkdirs() }
+        // The guest checks permissions from the host mode bits plus the owners table, and nothing owns this directory
+        // there (root), while mkdirs() leaves it 0700. Every app then fails to resolve /data/user/0/<pkg> (EACCES):
+        // contacts2.db cannot be opened (android.process.acore), gsf cannot create app_sslcache / open gservices.db
+        // (com.google.process.gapps) and the dialer dies querying the contacts provider. Runs on every boot so trees
+        // created with the old mode are repaired too.
+        makeTraversable(user)
         val zero = File(user, "0")
         val cur = runCatching { Os.readlink(zero.absolutePath) }.getOrNull()
         if (cur == "../data") return
@@ -1688,6 +1741,33 @@ class TreeFixer(
         "dbdata/databases/com.android.providers.settings/settings.db",
     ).map { File(root, it) }.firstOrNull { it.isFile }
 
+    /**
+     * "Skip setup wizard" on API 16+: the live helper (SetupCtl) only flips device_provisioned / user_setup_complete after
+     * boot. With the wizard disabled and the device still unprovisioned at start-up, Samsung's keyguard never draws and
+     * WindowManager logs "performEnableScreen return becase Keyguard ... is not fully drawn!" forever: black screen.
+     * Once the helper has run (its state file holds the original values, so "restore" still works), set the flags in
+     * settings.db before the system starts. Never called before the first helper run, so the saved originals stay original.
+     */
+    fun provisionBeforeBoot() {
+        if (img.api < 16) return
+        if (!File(root, "data/system/aemu-setup-skip.properties").isFile) return
+        val db = settingsDb() ?: return
+        runCatching {
+            SQLiteDatabase.openDatabase(db.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { d ->
+                fun put(table: String, name: String, value: String) {
+                    val exists = d.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { it.count > 0 }
+                    if (!exists) return
+                    val cv = android.content.ContentValues().apply { put("name", name); put("value", value) }
+                    if (d.update(table, cv, "name=?", arrayOf(name)) == 0) d.insert(table, null, cv)
+                }
+                if (img.api >= 17) put("global", "device_provisioned", "1")
+                put("secure", "device_provisioned", "1")
+                put("secure", "user_setup_complete", "1")
+            }
+            log("setup: device marked provisioned before boot (setup wizard skipped)")
+        }.onFailure { log("setup: pre-boot provisioning failed: ${it.message}") }
+    }
+
     fun noScreenSleep() {
         val db = settingsDb() ?: return
         runCatching {
@@ -2050,6 +2130,13 @@ class TreeFixer(
                 Regex("(?m)^ro\\.build\\.version\\.sdk=(\\d+)").find(File(root, "system/build.prop").readText())?.groupValues?.get(1)?.toInt()
             }.getOrNull() ?: return false
             return sdk in 17..20 && mtkTraces(root)
+        }
+
+        /** r-x for everyone (0755-style): lets guest app uids walk through a directory that no uid owns in the owners table. */
+        internal fun makeTraversable(dir: File) {
+            if (!dir.isDirectory) return
+            dir.setReadable(true, false)
+            dir.setExecutable(true, false)
         }
 
         private val DBDATA_DIRS = listOf("dbdata", "dbdata/databases", "dbdata/system")

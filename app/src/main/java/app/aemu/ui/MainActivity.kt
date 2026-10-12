@@ -74,6 +74,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -101,6 +102,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.aemu.core.GuestImage
+import app.aemu.AppPrefs
 import app.aemu.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.rounded.Settings
@@ -171,6 +173,15 @@ fun Library(model: LibraryModel) {
     var help by remember { mutableStateOf(false) }
     var addMenu by remember { mutableStateOf(false) }
     var containerFrom by remember { mutableStateOf<GuestImage?>(null) }
+    // 3D library is an opt-in app setting; re-read it when returning from Settings
+    var view3d by remember { mutableStateOf(AppPrefs.library3d(ctx)) }
+    DisposableEffect(lifecycleOwner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == Lifecycle.Event.ON_RESUME) view3d = AppPrefs.library3d(ctx)
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val scope = rememberCoroutineScope()
@@ -234,7 +245,26 @@ fun Library(model: LibraryModel) {
     ) { pad ->
         Box(Modifier.fillMaxSize().padding(pad)) {
             if (images.isEmpty() && !imp.active) EmptyState(onHelp = { help = true })
-            LazyColumn(
+            if (view3d && images.isNotEmpty()) Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, bottom = 120.dp)) {
+                StorageAccessCard()
+                if (!imp.active) FirmwareFolderCard(onImport = { f -> model.import(android.net.Uri.fromFile(f)) })
+                AnimatedVisibility(imp.active || imp.error != null || imp.done != null) {
+                    Box(Modifier.padding(bottom = 12.dp)) {
+                        ImportCard(imp, onCancel = model::cancelImport, onDismiss = model::dismissImport)
+                    }
+                }
+                // imported firmwares first, then the containers made from them
+                Library3D(
+                    images.filter { it.baseId.isEmpty() } + images.filter { it.baseId.isNotEmpty() },
+                    activeVmId,
+                    baseNameOf = { img -> images.firstOrNull { it.id == img.baseId }?.name },
+                    onStart = { img, lowPower -> VmActivity.start(ctx, img.id, lowPower = lowPower) },
+                    onSettings = { settingsFor = it },
+                    onRename = { renameFor = it },
+                    onDelete = { deleteFor = it },
+                )
+            } else LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
             ) {
                 item { StorageAccessCard() }

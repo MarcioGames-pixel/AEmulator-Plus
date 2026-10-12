@@ -1,4 +1,5 @@
 /* Modified for AEmulator Sunset, 2026-10-03: persisted motion and host-display options.
+ * Modified for AEmulator Super Plus, 2026-10-11: fake SIM card slots, Wi-Fi signal and neighbours.
  * GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.core
 
@@ -37,6 +38,8 @@ data class VmSettings(
     val hostBattery: Boolean = true,
     /** Explicit host-camera opt-in; applies at the next full VM boot. */
     val camera: Boolean = false,
+    /** Explicit host-microphone opt-in (guest app records from the phone microphone); applies at the next full VM boot. */
+    val microphone: Boolean = false,
     /** Experimental host Bluetooth passthrough (scan, RFCOMM, GATT); applies at the next full VM boot. */
     val bluetooth: Boolean = false,
     val motionSensors: Boolean = false,
@@ -74,6 +77,15 @@ data class VmSettings(
     val wifiSsid: String = WifiEmu.DEFAULT_SSID,
     /** WPA2 passphrase of the emulated network; blank = open network. */
     val wifiPassword: String = "",
+    /** Fake SIM in slot 1 (see [SimCard]); blank fields = the operator of the firmware's APN list, as before. */
+    val sim: SimCard = SimCard(),
+    /** Second slot: only used with [dualSim] on firmware built for two SIMs. */
+    val sim2: SimCard = SimCard(present = false),
+    val dualSim: Boolean = false,
+    /** Bars the emulated Wi-Fi shows, 1..4 (see [WifiEmu.rssiFor]). */
+    val wifiSignal: Int = WifiEmu.MAX_BARS,
+    /** A scan also lists a few other (locked) networks nearby. */
+    val wifiNeighbors: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("width", width).put("height", height).put("density", density)
@@ -88,6 +100,7 @@ data class VmSettings(
         .put("vibration", vibration)
         .put("hostBattery", hostBattery)
         .put("camera", camera)
+        .put("microphone", microphone)
         .put("bluetooth", bluetooth)
         .put("motionSensors", motionSensors).put("gyroLock", gyroLock).put("hostResolution", hostResolution)
         .put("skipSetupWizard", skipSetupWizard)
@@ -95,6 +108,8 @@ data class VmSettings(
         .put("ramMb", ramMb).put("radio", radio).put("imei", imei).put("serial", serial).put("kernel", kernel).put("baseband", baseband).put("networkType", networkType).put("qemuArgs", qemuArgs).put("straceServices", straceServices)
         .put("hardware", hardware)
         .put("wifi", wifi).put("wifiSsid", wifiSsid).put("wifiPassword", wifiPassword)
+        .put("sim", sim.toJson()).put("sim2", sim2.toJson()).put("dualSim", dualSim)
+        .put("wifiSignal", wifiSignal).put("wifiNeighbors", wifiNeighbors)
 
     companion object {
         /** Luhn-valid sample IMEI from the standard; the guest has no real modem */
@@ -180,6 +195,7 @@ data class VmSettings(
                 vibration = o.optBoolean("vibration", d.vibration),
                 hostBattery = o.optBoolean("hostBattery", d.hostBattery),
                 camera = o.optBoolean("camera", d.camera),
+                microphone = o.optBoolean("microphone", d.microphone),
                 bluetooth = o.optBoolean("bluetooth", d.bluetooth),
                 motionSensors = o.optBoolean("motionSensors", false),
                 gyroLock = GyroLock.sanitize(o.optInt("gyroLock", GyroLock.DISABLED)),
@@ -201,6 +217,11 @@ data class VmSettings(
                 wifi = o.optBoolean("wifi", d.wifi),
                 wifiSsid = WifiEmu.cleanSsid(o.optString("wifiSsid", d.wifiSsid)).ifEmpty { WifiEmu.DEFAULT_SSID },
                 wifiPassword = WifiEmu.cleanPassword(o.optString("wifiPassword", "")),
+                sim = SimCard.fromJson(o.optJSONObject("sim")),
+                sim2 = o.optJSONObject("sim2")?.let { SimCard.fromJson(it) } ?: d.sim2,
+                dualSim = o.optBoolean("dualSim", false),
+                wifiSignal = o.optInt("wifiSignal", d.wifiSignal).coerceIn(1, WifiEmu.MAX_BARS),
+                wifiNeighbors = o.optBoolean("wifiNeighbors", d.wifiNeighbors),
             )
         }
     }

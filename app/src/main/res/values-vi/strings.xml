@@ -212,6 +212,9 @@
     <string name="update_open_github">Xem trên GitHub</string>
     <string name="vs_camera">Camera máy chủ (thử nghiệm)</string>
     <string name="vs_camera_sub">ROM HAL1: xem trước và ảnh 640×480, camera sau/trước. Cần cấp quyền và khởi động lại hoàn toàn máy ảo. Camera đóng khi AEmulator chạy nền; hãy mở lại ứng dụng camera của máy khách. Không quay video.</string>
+    <string name="vs_microphone">Micrô của máy chủ (thử nghiệm)</string>
+    <string name="vs_microphone_sub">Ứng dụng khách ghi âm từ micrô điện thoại (ghi âm, ghi chú). Cần cấp quyền và khởi động lại hoàn toàn máy ảo. Ghi âm dừng khi AEmulator chạy nền; hãy mở lại ứng dụng ghi âm của máy khách. Chỉ ROM 4.x.</string>
+    <string name="microphone_permission_denied">Quyền micrô bị từ chối. Ứng dụng khách sẽ ghi âm thanh im lặng; hãy cấp quyền trong cài đặt ứng dụng Android và khởi động lại hoàn toàn máy ảo.</string>
     <string name="camera_permission_denied">Quyền camera bị từ chối. ROM sẽ khởi động mà không có quyền truy cập camera máy chủ; hãy cấp quyền trong cài đặt ứng dụng Android và khởi động lại hoàn toàn máy ảo để thử lại.</string>
     <string name="vs_skip_setup">Bỏ qua trình hướng dẫn thiết lập</string>
     <string name="vs_skip_setup_sub">Đánh dấu thiết lập đã hoàn tất và tắt các ứng dụng thiết lập được nhận diện ở lần khởi động đầy đủ tiếp theo. Tắt tùy chọn này không đặt lại thiết lập đã hoàn tất. Mức hỗ trợ OEM có thể khác nhau.</string>

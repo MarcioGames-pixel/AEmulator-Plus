@@ -212,6 +212,9 @@
     <string name="update_open_github">GitHub’da görüntüle</string>
     <string name="vs_camera">Ana makine kamerası (deneysel)</string>
     <string name="vs_camera_sub">HAL1 ROM’ları: 640×480 önizleme ve fotoğraf, arka/ön kamera. İzin ve sanal makinenin tamamen yeniden başlatılması gerekir. AEmulator arka plana alındığında kamera kapanır; misafir kamera uygulamasını yeniden açın. Video kaydı yok.</string>
+    <string name="vs_microphone">Ana makine mikrofonu (deneysel)</string>
+    <string name="vs_microphone_sub">Misafir uygulamalar telefon mikrofonundan kaydeder (ses kayıt cihazı, notlar). İzin ve sanal makinenin tamamen yeniden başlatılması gerekir. AEmulator arka plana alındığında kayıt durur; misafir kayıt uygulamasını yeniden açın. Yalnızca 4.x ROM’ları.</string>
+    <string name="microphone_permission_denied">Mikrofon izni reddedildi. Misafir uygulamalar sessizlik kaydeder; Android uygulama ayarlarından izin verin ve sanal makineyi tamamen yeniden başlatın.</string>
     <string name="camera_permission_denied">Kamera izni reddedildi. ROM, ana makine kamerasına erişim olmadan açılacak; yeniden denemek için Android uygulama ayarlarından izin verin ve sanal makineyi tamamen yeniden başlatın.</string>
     <string name="vs_skip_setup">Kurulum sihirbazını atla</string>
     <string name="vs_skip_setup_sub">Bir sonraki tam açılışta kurulumu tamamlanmış olarak işaretler ve tanınan kurulum uygulamalarını devre dışı bırakır. Kapatmak, tamamlanmış kurulumu sıfırlamaz. OEM desteği değişebilir.</string>

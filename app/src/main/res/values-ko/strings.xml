@@ -212,6 +212,9 @@
     <string name="update_open_github">GitHub에서 보기</string>
     <string name="vs_camera">호스트 카메라(실험적)</string>
     <string name="vs_camera_sub">HAL1 ROM: 640×480 미리보기 및 사진, 후면/전면 카메라. 권한과 VM 전체 재시작이 필요합니다. AEmulator가 백그라운드로 가면 카메라가 닫힙니다. 게스트 카메라 앱을 다시 여세요. 동영상 녹화는 지원하지 않습니다.</string>
+    <string name="vs_microphone">호스트 마이크(실험적)</string>
+    <string name="vs_microphone_sub">게스트 앱이 휴대폰 마이크로 녹음합니다(녹음기, 메모). 권한과 VM 전체 재시작이 필요합니다. AEmulator가 백그라운드로 가면 녹음이 멈춥니다. 게스트 녹음 앱을 다시 여세요. 4.x ROM만.</string>
+    <string name="microphone_permission_denied">마이크 권한이 거부되었습니다. 게스트 앱은 무음을 녹음합니다. Android 앱 설정에서 권한을 허용하고 VM을 완전히 재시작하세요.</string>
     <string name="camera_permission_denied">카메라 권한이 거부되었습니다. ROM은 호스트 카메라 없이 부팅됩니다. 다시 시도하려면 Android 앱 설정에서 권한을 허용하고 VM을 완전히 재시작하세요.</string>
     <string name="vs_skip_setup">설정 마법사 건너뛰기</string>
     <string name="vs_skip_setup_sub">다음 전체 부팅 시 설정을 완료된 것으로 표시하고 인식된 설정 앱을 비활성화합니다. 끄더라도 이미 완료된 설정은 초기화되지 않습니다. OEM 지원 여부는 다를 수 있습니다.</string>

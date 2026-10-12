@@ -1,5 +1,6 @@
 /* Modified for AEmulator Sunset through 2026-10-03: natural-edge controls, cutout and
- * compatibility and camera integration. GPL-3.0; see LICENSE and NOTICE.md. */
+ * compatibility and camera integration.
+ * Modified for AEmulator Plus, 2026-10-12: VM screen themes (merged from Super Plus). GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.ui
 
 import app.aemu.R
@@ -14,6 +15,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.viewinterop.AndroidView
+import app.aemu.core.SmsStore
 import app.aemu.core.NavButton
 import app.aemu.core.NavControls
 import app.aemu.core.HeldNavKeys
@@ -164,16 +166,23 @@ class VmActivity : ComponentActivity() {
     private var tablet = false
     private val controlsTurns get() = app.aemu.core.HostDisplayPolicy.controlsTurns(tablet, hostUi.tabletNavbarRotation, windowTurns)
     private var hostUi by mutableStateOf(app.aemu.AppPrefs.HostUiOptions())
+    /** VM screen theme (core/VmTheme.kt): navigation bar look, frame behind the guest, screen corners */
+    private var vmTheme by mutableStateOf(app.aemu.core.VmThemes.BUILT_IN[1])
+    private var frameView: android.widget.ImageView? = null
     private var vmRoot: FrameLayout? = null
     private var cutoutInsets = androidx.core.graphics.Insets.NONE
     private var orientationListener: android.view.OrientationEventListener? = null
     private var updateGuestLayout: (() -> Unit)? = null
-    /** Camera and Bluetooth are requested together so the VM boots once, after the person has answered. */
+    /** Camera, microphone and Bluetooth are requested together so the VM boots once, after the person has answered. */
     private val hostPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (::vm.isInitialized) {
             result[android.Manifest.permission.CAMERA]?.let { granted ->
                 vm.log("camera: host permission ${if (granted) "granted" else "denied"}")
                 if (!granted) toast(getString(R.string.camera_permission_denied))
+            }
+            result[android.Manifest.permission.RECORD_AUDIO]?.let { granted ->
+                vm.log("microphone: host permission ${if (granted) "granted" else "denied"}")
+                if (!granted) toast(getString(R.string.microphone_permission_denied))
             }
             val bluetooth = result.filterKeys { it in BluetoothPermissions.required() }
             if (bluetooth.isNotEmpty()) {
@@ -207,6 +216,7 @@ class VmActivity : ComponentActivity() {
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         windowTurns = windowManager.defaultDisplay.rotation
         hostUi = app.aemu.AppPrefs.hostUiOptions(this)
+        applyVmTheme()
         orientationListener = object : android.view.OrientationEventListener(this, android.hardware.SensorManager.SENSOR_DELAY_NORMAL) {
             override fun onOrientationChanged(angle: Int) {
                 if (angle != ORIENTATION_UNKNOWN) iconTurns = app.aemu.core.HostDisplayPolicy.iconTurns(angle, iconTurns)
@@ -273,7 +283,11 @@ class VmActivity : ComponentActivity() {
         guest.passthrough = useBridge
         box.addView(surfaceView, FrameLayout.LayoutParams(-1, -1))
         box.addView(guest, FrameLayout.LayoutParams(-1, -1))
+        // the theme's frame picture, behind the guest screen
+        frameView = android.widget.ImageView(this).apply { scaleType = android.widget.ImageView.ScaleType.CENTER_CROP }
+        root.addView(frameView, FrameLayout.LayoutParams(-1, -1))
         root.addView(box, FrameLayout.LayoutParams(0, 0))
+        applyVmTheme()
         val overlay = ComposeView(this).apply { setContent { AemuTheme(forceDark = true) { Overlay() } } }
         root.addView(overlay, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
@@ -321,6 +335,9 @@ class VmActivity : ComponentActivity() {
             if (s.camera && vm.cameraSupported &&
                 checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED)
                 add(android.Manifest.permission.CAMERA)
+            if (s.microphone && vm.microphoneSupported &&
+                checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                add(android.Manifest.permission.RECORD_AUDIO)
             if (s.bluetooth && vm.bluetoothSupported) addAll(BluetoothPermissions.missing(this@VmActivity))
         }
         if (needed.isNotEmpty() && (vm.state == GuestVm.State.STOPPED || vm.state == GuestVm.State.FAILED)) {
@@ -346,15 +363,17 @@ class VmActivity : ComponentActivity() {
         super.onResume()
         windowTurns = windowManager.defaultDisplay.rotation
         hostUi = app.aemu.AppPrefs.hostUiOptions(this)
+        applyVmTheme()
         applyCutoutBarrier()
         orientationListener?.enable()
-        if (::vm.isInitialized) { vm.cameraVisible(true); vm.motionVisible(true) }
+        if (::vm.isInitialized) { vm.cameraVisible(true); vm.micVisible(true); vm.motionVisible(true) }
     }
 
     override fun onPause() {
+        captureThumbnail()
         orientationListener?.disable()
         heldNavKeys.releaseAll()
-        if (::vm.isInitialized) { vm.cameraVisible(false); vm.motionVisible(false) }
+        if (::vm.isInitialized) { vm.cameraVisible(false); vm.micVisible(false); vm.motionVisible(false) }
         super.onPause()
     }
 
@@ -497,6 +516,60 @@ class VmActivity : ComponentActivity() {
         }
     }
 
+    /** Reads the selected VM theme: the bar follows [vmTheme]; the frame (colour or picture) and screen corners are set here. */
+    private fun applyVmTheme() {
+        val t = runCatching { app.aemu.core.VmThemes.selected(this) }.getOrDefault(app.aemu.core.VmThemes.BUILT_IN[1])
+        vmTheme = t
+        val root = vmRoot ?: return
+        root.setBackgroundColor(t.frameColor)
+        frameView?.let { fv ->
+            val bmp = app.aemu.core.VmThemes.imageFile(this, t)?.let { f ->
+                runCatching {
+                    // decoded no larger than about twice the screen: a phone photo would otherwise take tens of MB
+                    val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeFile(f.path, o)
+                    val target = resources.displayMetrics.widthPixels.coerceAtLeast(1) * 2
+                    var sample = 1
+                    while (o.outWidth / (sample * 2) >= target) sample *= 2
+                    android.graphics.BitmapFactory.decodeFile(f.path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+                }.getOrNull()
+            }
+            fv.setImageBitmap(bmp)
+            fv.visibility = if (bmp != null) View.VISIBLE else View.GONE
+        }
+        if (::box.isInitialized) {
+            val r = t.screenCorner * resources.displayMetrics.density
+            box.outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(v: View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, r) }
+            }
+            box.clipToOutline = r > 0f
+            box.invalidateOutline()
+        }
+    }
+
+    /** The screen as it is now, for the phone of this firmware in the 3D library (only once the system has booted). */
+    private fun captureThumbnail() {
+        if (!::vm.isInitialized || vm.recoveryMode || vm.bootDoneAt == 0L) return
+        val g = guest
+        val dir = app.aemu.core.VmPaths(this, vm.img.id).dir
+        if (g.w <= 0 || g.h <= 0) return
+        if (g.passthrough && surfaceView.width > 0 && surfaceView.height > 0 && surfaceView.holder.surface.isValid) {
+            // PixelCopy scales into the (small) bitmap it is given
+            val bmp = android.graphics.Bitmap.createBitmap(270, (270L * g.h / g.w).toInt().coerceIn(1, 810), android.graphics.Bitmap.Config.ARGB_8888)
+            runCatching {
+                android.view.PixelCopy.request(surfaceView, bmp, { res ->
+                    thread {
+                        if (res == android.view.PixelCopy.SUCCESS && !app.aemu.core.Screenshot.isBlank(bmp)) app.aemu.core.Screenshot.saveThumbnail(dir, bmp)
+                        bmp.recycle()
+                    }
+                }, android.os.Handler(android.os.Looper.getMainLooper()))
+            }.onFailure { bmp.recycle() }
+            return
+        }
+        val fb = g.fb; val fmt = g.format; val pages = g.pages; val page = g.shownPage
+        thread { runCatching { app.aemu.core.Screenshot.thumbnailFromFb(dir, fb, g.w, g.h, fmt, pages, page) } }
+    }
+
     /** raw fb0 → PNG in /sdcard/Pictures/AEmulator (see core/Screenshot.kt) */
     private fun screenshot() {
         val g = guest
@@ -562,7 +635,15 @@ class VmActivity : ComponentActivity() {
     private fun sendSms(from: String, body: String) {
         thread {
             // preferred: through the fake modem, the guest's telephony receives it like a real SMS (no shell, no `content` tool)
-            if (vm.ril.deliverSms(from.trim(), body)) { toast(getString(R.string.m_sms_sent)); return@thread }
+            val num = from.trim()
+            val t0 = System.currentTimeMillis()
+            if (vm.ril.deliverSms(num, body)) {
+                toast(getString(R.string.m_sms_sent))
+                // some TouchWiz builds create the thread but never save the message: check after a grace period, store it ourselves
+                Thread.sleep(12_000)
+                SmsStore.ensureStored(vm.paths.root, num, body, t0, vm::log)
+                return@thread
+            }
             // telephony not up (or in "radio unavailable" mode): write into the SMS provider inbox instead
             val cmd = "content insert --uri content://sms/inbox --bind address:s:${q(from)} --bind body:s:${q(body)} " +
                 "--bind read:i:0 --bind date:l:${System.currentTimeMillis()}"
@@ -931,10 +1012,10 @@ class VmActivity : ComponentActivity() {
                     box.post { updateGuestLayout?.invoke() }
                 }) {
                 Surface(
-                    color = if (hostUi.sunsetNavbar) Color(0xF20B0B0B) else MaterialTheme.colorScheme.secondaryContainer,
-                    shape = if (hostUi.sunsetNavbar) androidx.compose.ui.graphics.RectangleShape else androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                    color = vmTheme.barColor?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer,
+                    shape = if (vmTheme.roundedBar) androidx.compose.foundation.shape.RoundedCornerShape(28.dp) else androidx.compose.ui.graphics.RectangleShape,
                     modifier = (if (sideways) Modifier.fillMaxHeight() else Modifier.fillMaxWidth())
-                        .padding(if (hostUi.sunsetNavbar) 0.dp else 6.dp),
+                        .padding(if (vmTheme.roundedBar) 6.dp else 0.dp),
                 ) {
                     ControlStrip(stripTurns, Modifier.navigationBarsPadding(), trackball = {
                         if (vm.settings.trackball) Column(
@@ -979,7 +1060,7 @@ class VmActivity : ComponentActivity() {
                                         onClick = { vm.input.press(code) },
                                         onDown = { heldNavKeys.down(code) }, onUp = { heldNavKeys.up(code) },
                                         iconRotation = app.aemu.core.HostDisplayPolicy.controlIconRotation(tablet,
-                                            hostUi.tabletNavbarRotation, iconTurns, windowTurns), original = !hostUi.sunsetNavbar)
+                                            hostUi.tabletNavbarRotation, iconTurns, windowTurns), theme = vmTheme)
                                 }
                             }
                             if (stockRecovery && !(stripTurns == 1 || stripTurns == 2)) GoToRecoveryButton(sideways)
