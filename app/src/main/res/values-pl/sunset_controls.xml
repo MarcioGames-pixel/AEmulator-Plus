@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Czułość: %1$d dp na krok (mniej = szybciej)</string>
     <string name="nav_trackball_waiting">Brak jeszcze połączenia z trackballem gościa</string>
     <string name="nav_trackball_recovery">Recovery: użyj trybu klawiszy strzałek</string>
+    <string name="nav_go_to_recovery">Przejdź do recovery</string>
+    <string name="vs_bluetooth">Bluetooth hosta (eksperymentalne)</string>
+    <string name="vs_bluetooth_sub">Pozwala gościowi skanować, wyświetlać sparowane urządzenia i komunikować się z urządzeniami Bluetooth przez telefon: klasyczny szeregowy (RFCOMM) i Bluetooth LE (GATT). Wymaga uprawnienia Bluetooth i pełnego restartu maszyny wirtualnej. To nie jest surowy HCI: gość widzi adapter telefonu przez most, więc zestawy słuchawkowe (profile audio) nie są obsługiwane.</string>
+    <string name="bluetooth_permission_denied">Odmówiono uprawnienia Bluetooth: gość uruchomi się bez Bluetooth hosta.</string>
 </resources>

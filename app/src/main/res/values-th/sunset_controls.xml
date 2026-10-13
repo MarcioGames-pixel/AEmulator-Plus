@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">ซ่อนปุ่มเมนู</string>
+    <string name="vs_hide_menu_sub">ซ่อนปุ่ม … ปุ่มย้อนกลับของโทรศัพท์หรือท่าทางย้อนกลับจะเปิดเมนูอีมูเลเตอร์แทนที่จะส่งการย้อนกลับไปยัง Android ปุ่มนำทางของเกสต์ยังคงควบคุม Android ได้</string>
+    <string name="vs_vibration">การสั่นของเกสต์</string>
+    <string name="vs_vibration_sub">ส่งต่อการสั่นของเกสต์รุ่นเก่าไปยังโทรศัพท์ มีผลเมื่อบูตครั้งถัดไป; การสั่นแต่ละครั้งจำกัดไม่เกิน 60 วินาที</string>
+    <string name="nav_buttons">ปุ่มนำทาง</string>
+    <string name="nav_order">ลำดับปุ่ม (ซ้ายไปขวา)</string>
+    <string name="nav_earlier">เลื่อนขึ้น</string>
+    <string name="nav_later">เลื่อนลง</string>
+    <string name="nav_reset">รีเซ็ตปุ่ม</string>
+    <string name="nav_search">ค้นหา</string>
+    <string name="nav_power">เปิด/ปิดเครื่อง</string>
+    <string name="nav_go_to_recovery">ไปที่รีคัฟเวอรี</string>
+    <string name="nav_volume_down">ลดเสียง</string>
+    <string name="nav_volume_up">เพิ่มเสียง</string>
+    <string name="nav_up">D-pad ขึ้น</string>
+    <string name="nav_down">D-pad ลง</string>
+    <string name="nav_left">D-pad ซ้าย</string>
+    <string name="nav_right">D-pad ขวา</string>
+    <string name="nav_center">D-pad กลาง</string>
+    <string name="nav_trackball">แทร็กบอล</string>
+    <string name="nav_trackball_sub">ปัดบนวงกลมเหนือแถบนำทางเพื่อกลิ้ง; แตะเพื่อเลือก</string>
+    <string name="nav_dpad_mode">โหมดปุ่มลูกศร</string>
+    <string name="nav_dpad_sub">ปิด: ส่งเหตุการณ์แทร็กบอลแบบสัมพัทธ์จริงให้แอปของเกสต์ เปิด: ส่งการกดปุ่ม D-pad แทน ไม่ส่งทั้งสองแบบพร้อมกัน</string>
+    <string name="nav_sensitivity">ความไว: %1$d dp ต่อก้าว (ยิ่งต่ำยิ่งเร็ว)</string>
+    <string name="nav_trackball_waiting">ยังไม่มีการเชื่อมต่อแทร็กบอลของเกสต์</string>
+    <string name="nav_trackball_recovery">รีคัฟเวอรี: ใช้โหมดปุ่มลูกศร</string>
+    <string name="vs_bluetooth">บลูทูธของโฮสต์ (ทดลอง)</string>
+    <string name="vs_bluetooth_sub">ให้เกสต์สแกน แสดงรายการอุปกรณ์ที่จับคู่ และสื่อสารกับอุปกรณ์บลูทูธผ่านโทรศัพท์: ซีเรียลแบบคลาสสิก (RFCOMM) และ Bluetooth LE (GATT) ต้องได้รับสิทธิ์บลูทูธและรีสตาร์ท VM ทั้งหมด ไม่ใช่ HCI ดิบ: เกสต์เห็นอะแดปเตอร์ของโทรศัพท์ผ่านบริดจ์ จึงไม่รองรับหูฟัง (โปรไฟล์เสียง)</string>
+    <string name="bluetooth_permission_denied">ไม่ได้รับสิทธิ์บลูทูธ: เกสต์จะบูตโดยไม่มีบลูทูธของโฮสต์</string>
+</resources>

@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Чувствительность: %1$d dp на шаг (меньше — быстрее)</string>
     <string name="nav_trackball_waiting">Гостевая система пока не подключилась к трекболу</string>
     <string name="nav_trackball_recovery">Recovery: используйте режим кнопок направления</string>
+    <string name="nav_go_to_recovery">Перейти в recovery</string>
+    <string name="vs_bluetooth">Bluetooth хоста (экспериментально)</string>
+    <string name="vs_bluetooth_sub">Позволяет гостевой системе сканировать, перечислять сопряжённые устройства и обмениваться данными с Bluetooth-устройствами через телефон: классический последовательный порт (RFCOMM) и Bluetooth LE (GATT). Требуется разрешение Bluetooth и полный перезапуск ВМ. Это не «сырой» HCI: гостевая система видит адаптер телефона через мост, поэтому гарнитуры (аудиопрофили) не поддерживаются.</string>
+    <string name="bluetooth_permission_denied">Разрешение Bluetooth отклонено: гостевая система загрузится без Bluetooth хоста.</string>
 </resources>

@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition: block OTA support. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import app.aemu.importer.tools.FirmwareToolset
 import java.io.File
 import java.io.OutputStream
@@ -36,7 +37,7 @@ object StockImage {
     fun scan(
         image: File,
         tmpFor: (() -> File)?,
-        progress: (String) -> Unit,
+        progress: (Msg) -> Unit,
         onFile: (path: String, mode: Int, size: Long, sha1: String, tmp: File?) -> Unit,
         onLink: (path: String, target: String) -> Unit,
         onDir: (path: String, mode: Int) -> Unit,
@@ -59,7 +60,7 @@ object StockImage {
                 md = d
                 val t = tmpFor?.invoke()
                 tmp = t
-                if (++count % 64 == 0) progress("Reading the system image: $count files")
+                if (++count % 64 == 0) progress(Msg("Reading the system image: $count files", R.string.ota_reading_the_system_image_files, count))
                 return if (t != null) DigestOutputStream(t.outputStream().buffered(1 shl 20), d) else DigestOutputStream(DISCARD, d)
             }
 

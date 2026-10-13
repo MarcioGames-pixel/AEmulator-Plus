@@ -1,5 +1,6 @@
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -22,7 +23,7 @@ internal object OemPartitionImport {
             lease.acquire()
             GuestStorageWriters.requireIdle(ctx)
             val paths = VmPaths(ctx, id)
-            val old = ImageStore.get(ctx, id) ?: error("VM no longer exists")
+            val old = ImageStore.get(ctx, id) ?: localizedError("VM no longer exists", R.string.err_vm_no_longer_exists)
             require(!present(paths.dir)) { "VM already has an OEM partition" }
             for (dir in listOf(paths.dir, paths.root)) require(dir.isDirectory && !Files.isSymbolicLink(dir.toPath()))
             val target = File(paths.root, "oem")
@@ -33,7 +34,7 @@ internal object OemPartitionImport {
             val scratch = File(ctx.cacheDir, "oem-import-${System.nanoTime()}").apply { mkdirs() }
             val stage = File(paths.dir, ".oem-stage").apply { deleteRecursively(); mkdirs() }
             try {
-                val image = (ctx.contentResolver.openInputStream(uri) ?: error("Cannot open OEM image")).use {
+                val image = (ctx.contentResolver.openInputStream(uri) ?: localizedError("Cannot open OEM image", R.string.err_cannot_open_oem_image)).use {
                     OemPartitionSource.read(it, name, scratch)
                 }
                 Importer(ctx, { _, _ -> }, { }).importOemInto(image, stage)

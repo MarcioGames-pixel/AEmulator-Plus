@@ -1,6 +1,7 @@
 /* AEmulator Super Plus, 2026-10-11: configurable fake SIM cards. GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.core
 
+import app.aemu.R
 import org.json.JSONObject
 import java.io.File
 
@@ -55,6 +56,20 @@ data class SimCard(
 data class OperatorPreset(val country: String, val name: String, val mcc: String, val mnc: String)
 
 object SimCards {
+    private val COUNTRY_ISO = mapOf(
+        "Portugal" to "PT", "Brasil" to "BR", "USA" to "US", "Canada" to "CA", "México" to "MX", "UK" to "GB", "España" to "ES",
+        "France" to "FR", "Deutschland" to "DE", "Italia" to "IT", "Polska" to "PL", "Türkiye" to "TR", "Россия" to "RU",
+        "Україна" to "UA", "India" to "IN", "Indonesia" to "ID", "日本" to "JP",
+    )
+
+    /** Country of a preset in the language of the app, taken from the platform's own country names. */
+    fun countryLabel(ctx: android.content.Context, p: OperatorPreset): String {
+        if (p.country == "Emulator") return ctx.getString(R.string.sim_country_emulator)
+        val iso = COUNTRY_ISO[p.country] ?: return p.country
+        val locale = ctx.resources.configuration.locales[0]
+        return java.util.Locale("", iso).getDisplayCountry(locale).ifBlank { p.country }
+    }
+
     val PRESETS = listOf(
         OperatorPreset("Portugal", "MEO", "268", "06"), OperatorPreset("Portugal", "Vodafone P", "268", "01"),
         OperatorPreset("Portugal", "NOS", "268", "03"),

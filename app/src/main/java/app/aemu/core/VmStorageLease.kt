@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-02. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.channels.FileLock
@@ -22,7 +23,7 @@ internal class VmStorageLease(directory: File) : AutoCloseable {
         file.parentFile!!.mkdirs()
         val opened = RandomAccessFile(file, "rw")
         try {
-            lock = opened.channel.tryLock() ?: error("Shut down all VMs before modifying or exporting VM files")
+            lock = opened.channel.tryLock() ?: localizedError("Shut down all VMs before modifying or exporting VM files", R.string.err_shut_down_all_vms_before_modifying)
             handle = opened
         } catch (t: Throwable) { opened.close(); throw t }
     }

@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-03. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.net.Uri
 import android.system.Os
@@ -26,7 +27,7 @@ internal object VmArchiveStorage {
                 .put("aessvmRomFingerprint", fingerprint(paths))
             if (!selection.config) profile.remove("settings")
             val json = profile.toString(2)
-            (ctx.contentResolver.openOutputStream(uri, "wt") ?: error("Cannot open export file")).use { out ->
+            (ctx.contentResolver.openOutputStream(uri, "wt") ?: localizedError("Cannot open export file", R.string.err_cannot_open_export_file)).use { out ->
                 VmArchive.export(paths.dir, json, selection, out, { file ->
                     val st = Os.lstat(file.path)
                     val key = String.format(Locale.ROOT, "%016x %016x", st.st_dev, st.st_ino)
@@ -49,7 +50,7 @@ internal object VmArchiveStorage {
     }.getOrDefault("")
 
     fun readSettings(ctx: Context, uri: Uri): SettingsImport {
-        val profile = (ctx.contentResolver.openInputStream(uri) ?: error("Cannot open archive")).use { VmArchive.profile(it) }
+        val profile = (ctx.contentResolver.openInputStream(uri) ?: localizedError("Cannot open archive", R.string.err_cannot_open_archive)).use { VmArchive.profile(it) }
         require(profile.selection.config) { "Archive does not include settings" }
         val json = JSONObject(profile.json)
         require(json.has("settings")) { "Archive does not include settings" }
@@ -65,7 +66,7 @@ internal object VmArchiveStorage {
             check(paths.dir.mkdir())
             try {
                 val rows = StringBuilder()
-                val json = (ctx.contentResolver.openInputStream(uri) ?: error("Cannot open VM archive")).use { input ->
+                val json = (ctx.contentResolver.openInputStream(uri) ?: localizedError("Cannot open VM archive", R.string.err_cannot_open_vm_archive)).use { input ->
                     VmArchive.restore(input, paths.dir, { file, mode -> Os.chmod(file.path, mode and 0xfff) }, { file, uid, gid ->
                         val st = Os.lstat(file.path)
                         rows.append(String.format(Locale.ROOT, "%016x %016x %08x %08x\n", st.st_dev, st.st_ino, uid, gid))

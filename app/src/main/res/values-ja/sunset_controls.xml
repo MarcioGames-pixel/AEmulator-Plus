@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">感度：1ステップあたり %1$d dp（小さいほど速い）</string>
     <string name="nav_trackball_waiting">ゲストのトラックボールにまだ接続されていません</string>
     <string name="nav_trackball_recovery">リカバリー：矢印キーモードを使用してください</string>
+    <string name="nav_go_to_recovery">リカバリに移動</string>
+    <string name="vs_bluetooth">ホストのBluetooth(試験的)</string>
+    <string name="vs_bluetooth_sub">ゲストがスマートフォン経由でBluetoothデバイスのスキャン、ペア済み一覧の表示、通信を行えるようにします。クラシックシリアル(RFCOMM)とBluetooth LE(GATT)に対応。Bluetoothの権限とVMの完全な再起動が必要です。生のHCIではありません。ゲストはブリッジ経由でスマートフォンのアダプターを認識するため、ヘッドセット(オーディオプロファイル)には対応していません。</string>
+    <string name="bluetooth_permission_denied">Bluetoothの権限が拒否されました。ゲストはホストのBluetoothなしで起動します。</string>
 </resources>

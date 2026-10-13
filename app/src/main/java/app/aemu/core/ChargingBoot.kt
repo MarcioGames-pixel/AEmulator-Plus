@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-02. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import java.io.File
 
 /** Offline charging is an alternative init class, not a normal Android preset. */
@@ -45,6 +46,6 @@ internal object ChargingBoot {
         for (path in listOf("/charger", "/sbin/charger", "/system/bin/charger", "/system/bin/playlpm", "/system/bin/charging"))
             if (File(root, path.trimStart('/')).isFile) return listOf(GuestService("charger", listOf(path)))
         if (api >= 21 && File(root, "sbin/healthd").isFile) return listOf(GuestService("charger", listOf("/sbin/healthd", "-c")))
-        error("This ROM has no usable offline-charging service. Import its boot image as well as /system.")
+        localizedError("This ROM has no usable offline-charging service. Import its boot image as well as /system.", R.string.err_this_rom_has_no_usable_offline)
     }
 }

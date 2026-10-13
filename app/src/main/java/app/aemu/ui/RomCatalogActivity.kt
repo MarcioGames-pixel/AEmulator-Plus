@@ -1,5 +1,6 @@
 package app.aemu.ui
 
+import app.aemu.core.userMessage
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -63,7 +64,7 @@ private fun CatalogScreen(onBack: () -> Unit) {
             if (selectedSection !in loaded.sections.indices) selectedSection = -1
         }
         catch (e: CancellationException) { throw e }
-        catch (e: Exception) { error = e.message ?: e.javaClass.simpleName }
+        catch (e: Exception) { error = e.userMessage(ctx) }
         finally { loading = false }
     }
     Scaffold(topBar = {

@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Itago ang menu button</string>
+    <string name="vs_hide_menu_sub">Itinatago ang … button. Ang Back button o back gesture ng telepono ang magbubukas ng menu ng emulator sa halip na magpadala ng Back sa Android. Ang mga navigation button ng guest ay kumokontrol pa rin sa Android.</string>
+    <string name="vs_vibration">Vibration ng guest</string>
+    <string name="vs_vibration_sub">Ipasa ang legacy na vibration ng guest sa telepono. Ilalapat sa susunod na boot; limitado sa 60 segundo ang bawat pulse.</string>
+    <string name="nav_buttons">Mga navigation button</string>
+    <string name="nav_order">Pagkakasunod-sunod ng mga button (kaliwa pakanan)</string>
+    <string name="nav_earlier">Mas maaga</string>
+    <string name="nav_later">Mas huli</string>
+    <string name="nav_reset">I-reset ang mga button</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_power">Power</string>
+    <string name="nav_go_to_recovery">Pumunta sa recovery</string>
+    <string name="nav_volume_down">Hinaan ang volume</string>
+    <string name="nav_volume_up">Lakasan ang volume</string>
+    <string name="nav_up">D-pad pataas</string>
+    <string name="nav_down">D-pad pababa</string>
+    <string name="nav_left">D-pad pakaliwa</string>
+    <string name="nav_right">D-pad pakanan</string>
+    <string name="nav_center">D-pad gitna</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">I-swipe ang bilog sa itaas ng navigation bar para gumulong; i-tap para pumili.</string>
+    <string name="nav_dpad_mode">Arrow-key mode</string>
+    <string name="nav_dpad_sub">Off: totoong relative trackball event para sa mga app ng guest. On: D-pad key press na lang. Hindi ipinapadala ang dalawa.</string>
+    <string name="nav_sensitivity">Sensitivity: %1$d dp bawat hakbang (mas mababa = mas mabilis)</string>
+    <string name="nav_trackball_waiting">Wala pang koneksyon ng trackball ng guest</string>
+    <string name="nav_trackball_recovery">Recovery: gamitin ang arrow-key mode</string>
+    <string name="vs_bluetooth">Bluetooth ng host (eksperimental)</string>
+    <string name="vs_bluetooth_sub">Hayaang mag-scan, mag-pair-list at makipag-usap ang guest sa mga Bluetooth device sa pamamagitan ng telepono: classic serial (RFCOMM) at Bluetooth LE (GATT). Kailangan ng pahintulot sa Bluetooth at buong pag-restart ng VM. Walang direktang (raw) HCI access: nakikita ng guest ang adapter ng telepono sa pamamagitan ng bridge, kaya hindi suportado ang mga headset (audio profile).</string>
+    <string name="bluetooth_permission_denied">Tinanggihan ang pahintulot sa Bluetooth: magbo-boot ang guest nang walang Bluetooth ng host.</string>
+</resources>

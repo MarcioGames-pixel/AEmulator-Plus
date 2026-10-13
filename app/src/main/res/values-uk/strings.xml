@@ -107,9 +107,9 @@
     <string name="vs_radio">Емуляція радіомодуля</string>
     <string name="vs_radio_sub">Телефонія, IMEI і мережа. Вимк.: прошивка поводиться як Wi-Fi планшет</string>
     <string name="vs_random">Випадковий</string>
-    <string name="vs_device_id">Device identity</string>
-    <string name="vs_serial">Serial number</string>
-    <string name="vs_serial_sub">Reported as ro.serialno and ro.boot.serialno (letters and digits, up to 32). Applied on next boot. Blank = default</string>
+    <string name="vs_device_id">Ідентифікатор пристрою</string>
+    <string name="vs_serial">Серійний номер</string>
+    <string name="vs_serial_sub">Передається як ro.serialno і ro.boot.serialno (літери та цифри, до 32 символів). Застосовується під час наступного завантаження. Порожньо = за замовчуванням</string>
     <string name="vs_advanced">Додатково</string>
     <string name="vs_qemu_args">Дод. параметри qemu</string>
     <string name="vs_qemu_args_sub">Приклад: -d unimp DHD_TBFLUSH=2 (ІМʼЯ=значення стає змінною оточення)</string>
@@ -264,6 +264,8 @@
     <string name="vm_export_failed">Не вдалося експортувати. Повністю вимкніть усі ВМ і перевірте вільне місце та доступ до місця призначення. Якщо залишився частковий файл, видаліть його перед повторною спробою.</string>
     <string name="vs_motion">Датчики руху хоста</string>
     <string name="vs_motion_sub">Передавати доступні акселерометр, гіроскоп і магнітометр (Android 2.2–7.1). Якщо вимкнено, «Повернути екран» імітує гравітацію; в гостьовій системі має бути ввімкнено автоповорот. Експериментально; набуває чинності після повного перезапуску ВМ. Призупиняється, поки екран ВМ приховано.</string>
+    <string name="vs_no_sensors">Вимкнути всі датчики</string>
+    <string name="vs_no_sensors_sub">Запускати гостя без датчиків — для прошивок, у яких служба датчиків падає під емуляцією. За замовчуванням увімкнено для збірок Android Wear SDK з API 24+, де це потрібно для завантаження. Діє після наступного повного завантаження.</string>
     <string name="vs_host_resolution">Використовувати роздільну здатність хоста</string>
     <string name="vs_resolution_host">Хост</string>
     <string name="vs_host_resolution_sub">Використовувати фізичний розмір і щільність екрана хоста після повного перезапуску ВМ. Елементи керування емулятора накладаються поверх гостя. Бар’єр для вирізу — у налаштуваннях застосунку. Висока роздільна здатність потребує більше пам’яті та часу на відтворення. Застарілий рушій 2.x зберігає фіксовану роздільну здатність.</string>
@@ -313,4 +315,91 @@
         <item quantity="many">%1$d ROM</item>
         <item quantity="other">%1$d ROM</item>
     </plurals>
+    <string name="vs_network">Мережа, про яку повідомляється</string>
+    <string name="vs_network_sub">Що показує рядок стану: від 2G до LTE. За замовчуванням 2G, адже не кожна прошивка підтримує 3G і новіші</string>
+    <string name="m_network">Мережа</string>
+    <string name="vs_kernel">Версія ядра</string>
+    <string name="vs_kernel_sub">Відображається в /proc/version та uname -r (наприклад, 3.0.31-custom або повний рядок «Linux version ...»). Застосовується під час наступного завантаження. Порожньо = за замовчуванням</string>
+    <string name="vs_baseband">Версія baseband</string>
+    <string name="vs_baseband_sub">Повідомляється як gsm.version.baseband і модемом. Застосовується під час наступного завантаження. Порожньо = за замовчуванням</string>
+    <string name="vs_strace">Трасування системних викликів служб</string>
+    <string name="vs_strace_sub">Назви служб через кому, наприклад mediaserver,zygote. Уповільнює ці служби й записує трасування в їхні журнали. Застосовується під час наступного завантаження.</string>
+    <string name="vs_wifi">Мережа Wi-Fi</string>
+    <string name="vs_wifi_sub">Показує ВМ інтернет хоста як підключену мережу Wi-Fi замість Ethernet. Android 4.0–7.x. Застосовується під час наступного завантаження.</string>
+    <string name="vs_wifi_ssid">Назва мережі (SSID)</string>
+    <string name="vs_wifi_ssid_sub">До 32 байтів</string>
+    <string name="vs_wifi_ssid_error">Назва мережі не може бути порожньою</string>
+    <string name="vs_wifi_password">Пароль</string>
+    <string name="vs_wifi_password_sub">Залиште порожнім для відкритої мережі. Для WPA2 потрібно 8–63 символи.</string>
+    <string name="vs_wifi_password_error">Використайте 8–63 символи або залиште порожнім для відкритої мережі</string>
+    <string name="vs_wifi_show">Показати</string>
+    <string name="vs_wifi_hide">Сховати</string>
+    <string name="vs_sim_title">SIM-картки</string>
+    <string name="vs_sim_present">SIM-картку вставлено</string>
+    <string name="vs_sim2_present">Другу SIM-картку вставлено</string>
+    <string name="vs_sim_present_sub">Вимк.: слот порожній, і прошивка показує «Немає SIM-картки». Застосовується під час наступного завантаження.</string>
+    <string name="vs_sim_preset">Оператор</string>
+    <string name="vs_sim_preset_sub">Справжня мережа або введіть коди нижче. ✓ = у цій прошивці є налаштування мобільних даних (APN) для неї</string>
+    <string name="vs_sim_default">За замовчуванням для прошивки</string>
+    <string name="vs_sim_name">Назва оператора</string>
+    <string name="vs_sim_code_error">MCC має 3 цифри, MNC — 2 або 3</string>
+    <string name="vs_sim_no_apn">У цій прошивці немає налаштувань мобільних даних (APN) для цього оператора, тому мобільні дані можуть не підключитися. Дзвінки, SMS і Wi-Fi це не стосується.</string>
+    <string name="vs_sim_number">Номер телефону</string>
+    <string name="vs_sim_number_sub">Показується в Налаштування › Про телефон › Стан</string>
+    <string name="vs_dual_sim">Дві SIM-картки</string>
+    <string name="vs_dual_sim_sub">Друга підроблена SIM-картка. Її використовують лише прошивки, створені для двох SIM-карток (багато від Samsung і MediaTek). Застосовується під час наступного завантаження.</string>
+    <string name="vs_wifi_signal">Рівень сигналу</string>
+    <string name="vs_wifi_signal_sub">Кількість поділок на значку Wi-Fi</string>
+    <string name="vs_wifi_neighbors">Мережі поблизу</string>
+    <string name="vs_wifi_neighbors_sub">У списку Wi-Fi також показано кілька інших мереж (захищених, підключитися до них не можна)</string>
+    <string name="vs_gyro_lock">Зафіксувати орієнтацію гіроскопа</string>
+    <string name="vs_gyro_lock_sub">0° / 180° закріплює датчики руху хоста в одній орієнтації: гравітація залишається незмінною, а гіроскоп показує нуль, тож гість ніколи не повертається автоматично. «Без гіроскопа» повністю приховує гіроскоп від гостя (використовуйте, якщо гіроскоп працює неправильно); акселерометр і магнітометр залишаються справжніми. Набуває чинності після повного перезапуску ВМ.</string>
+    <string name="vs_gyro_disabled">Вимкнено</string>
+    <string name="vs_gyro_0">0°</string>
+    <string name="vs_gyro_180">180°</string>
+    <string name="vs_gyro_none">Без гіроскопа</string>
+    <string name="as_navbar_holo">Holo</string>
+    <string name="vm_export_note">Одноразова нотатка (необов’язково)</string>
+    <string name="vm_export_note_info">Показується, доки Android не завантажиться й не пропрацює 10 секунд.</string>
+    <string name="vm_rom_note">Нотатка про ROM</string>
+    <string name="vs_host_battery">Використовувати батарею хоста</string>
+    <string name="vs_host_battery_sub">Відтворює рівень заряду та стан заряджання вашого пристрою.</string>
+    <string name="lib3d_container">Контейнер</string>
+    <string name="lib3d_show_back">Показати задню сторону</string>
+    <string name="lib3d_show_front">Показати екран</string>
+    <string name="lib3d_tap_hint">Торкніться телефона, щоб перевернути його</string>
+    <string name="as_library_3d">3D-бібліотека прошивок</string>
+    <string name="as_library_3d_sub">Показує імпортовані прошивки та контейнери як 3D-телефони, які можна гортати, замість списку карток. За замовчуванням вимкнено.</string>
+    <string name="th_title">Тема екрана ВМ</string>
+    <string name="th_sub">Кнопки панелі навігації, кольори та рамка навколо екрана гостя в стилі однієї з епох Android або за вашим власним дизайном.</string>
+    <string name="th_note">Теми змінюють лише застосунок навколо ВМ; прошивка ніколи не змінюється. Зміни застосовуються після повторного відкриття екрана ВМ.</string>
+    <string name="th_copy_of">%1$s (копія)</string>
+    <string name="th_duplicate">Дублювати й змінити</string>
+    <string name="th_edit">Змінити</string>
+    <string name="th_export">Поділитися файлом</string>
+    <string name="th_new">Нова тема</string>
+    <string name="th_new_name">Моя тема</string>
+    <string name="th_import">Імпорт…</string>
+    <string name="th_exported">Тему збережено</string>
+    <string name="th_imported">Тему імпортовано та вибрано</string>
+    <string name="th_failed">Не вдалося виконати: %1$s</string>
+    <string name="th_editor">Редактор тем</string>
+    <string name="th_glyphs">Форми кнопок</string>
+    <string name="th_icon_size">Розмір кнопок</string>
+    <string name="th_colours">Кольори</string>
+    <string name="th_bar">Панель</string>
+    <string name="th_icons">Кнопки</string>
+    <string name="th_pressed">Натискання</string>
+    <string name="th_frame">Рамка</string>
+    <string name="th_glow">Світіння під час натискання</string>
+    <string name="th_glow_sub">М’яке світло позаду натиснутої кнопки (Honeycomb, Holo, Lollipop) замість зафарбованого квадрата</string>
+    <string name="th_halo">Ореол навколо кнопок</string>
+    <string name="th_halo_sub">Слабке свічення системних панелей Android 3.x і 4.x</string>
+    <string name="th_rounded_bar">Плаваюча заокруглена панель</string>
+    <string name="th_rounded_bar_sub">Вимк.: пласка панель від краю до краю, як на справжніх телефонах</string>
+    <string name="th_frame_section">Рамка та екран</string>
+    <string name="th_corner">Кути екрана: %1$d dp</string>
+    <string name="th_pick_picture">Фонове зображення…</string>
+    <string name="th_remove_picture">Видалити зображення</string>
+    <string name="th_corner_note">Коли міст GPU ввімкнено, деякі телефони не заокруглюють кути екрана гостя.</string>
 </resources>

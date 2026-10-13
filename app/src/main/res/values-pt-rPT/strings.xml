@@ -264,6 +264,8 @@
     <string name="vm_rom_note">Nota da ROM</string>
     <string name="vs_motion">Sensores de movimento do anfitrião</string>
     <string name="vs_motion_sub">Encaminha os sensores disponíveis de acelerómetro, giroscópio e campo magnético (Android 2.2–7.1). Desativado, «Rodar o ecrã» simula a gravidade; a rotação automática do convidado tem de estar ativada. Experimental; entra em vigor após um reinício completo da VM. Em pausa enquanto o ecrã da VM está oculto.</string>
+    <string name="vs_no_sensors">Desativar todos os sensores</string>
+    <string name="vs_no_sensors_sub">Executa o convidado sem sensores, para firmwares cujo serviço de sensores falha sob emulação. Ativado por predefinição em compilações Android Wear SDK com API 24+, onde é necessário para arrancar. Aplica-se no próximo arranque completo.</string>
     <string name="vs_host_resolution">Usar a resolução do anfitrião</string>
     <string name="vs_resolution_host">Anfitrião</string>
     <string name="vs_host_resolution_sub">Usa o tamanho e a densidade físicos do ecrã do anfitrião após um reinício completo da VM. Os controlos do emulador ficam por cima do convidado. A barreira do recorte do ecrã está nas definições da aplicação. Resoluções altas exigem mais RAM e tempo de desenho. O motor 2.x antigo mantém a sua resolução fixa.</string>

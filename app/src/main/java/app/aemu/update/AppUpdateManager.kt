@@ -1,5 +1,8 @@
 package app.aemu.update
 
+import app.aemu.core.LocalizedIOException
+import app.aemu.core.LocalizedIllegalArgumentException
+import app.aemu.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -130,9 +133,8 @@ object AppUpdateManager {
         release: ReleaseInfo,
         onProgress: (Float, Long, Long) -> Unit
     ): File = withContext(Dispatchers.IO) {
-        require(UpdateAssetPolicy.matches(release.fileName, context.packageName)) {
-            "Update APK does not match this application variant"
-        }
+        if (!UpdateAssetPolicy.matches(release.fileName, context.packageName))
+            throw LocalizedIllegalArgumentException("Update APK does not match this application variant", R.string.update_err_wrong_variant)
         val updatesDir = File(context.getExternalFilesDir(null) ?: context.cacheDir, "updates")
         if (!updatesDir.exists()) updatesDir.mkdirs()
 
@@ -189,7 +191,7 @@ object AppUpdateManager {
         conn.disconnect()
         if (context.packageManager.getPackageArchiveInfo(targetFile.absolutePath, 0)?.packageName != context.packageName) {
             targetFile.delete()
-            throw java.io.IOException("Downloaded APK has the wrong application package")
+            throw LocalizedIOException("Downloaded APK has the wrong application package", R.string.update_err_wrong_package)
         }
         targetFile
     }

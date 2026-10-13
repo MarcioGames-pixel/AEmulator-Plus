@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition: block OTA support. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -30,13 +31,13 @@ internal object BlockOta {
 
     fun parse(text: String): Program {
         val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
-        if (lines.size < 2) throw OtaException("the transfer list of this OTA is empty")
-        val version = lines[0].toIntOrNull() ?: throw OtaException("the transfer list of this OTA has no version")
-        if (version !in 1..4) throw OtaException("this OTA's transfer list has version $version, which this app cannot run")
-        val total = lines[1].toLongOrNull()?.takeIf { it >= 0 } ?: throw OtaException("the transfer list of this OTA has no block count")
+        if (lines.size < 2) throw OtaException("the transfer list of this OTA is empty", R.string.ota_the_transfer_list_of_this_ota)
+        val version = lines[0].toIntOrNull() ?: throw OtaException("the transfer list of this OTA has no version", R.string.ota_the_transfer_list_of_this_ota_2)
+        if (version !in 1..4) throw OtaException("this OTA's transfer list has version $version, which this app cannot run", R.string.ota_this_ota_s_transfer_list_has, version)
+        val total = lines[1].toLongOrNull()?.takeIf { it >= 0 } ?: throw OtaException("the transfer list of this OTA has no block count", R.string.ota_the_transfer_list_of_this_ota_3)
         var at = 2
         if (version >= 2) {
-            if (lines.size < 4) throw OtaException("the transfer list of this OTA is truncated")
+            if (lines.size < 4) throw OtaException("the transfer list of this OTA is truncated", R.string.ota_the_transfer_list_of_this_ota_4)
             at = 4 // stash entries, most blocks stashed at once
         }
         return Program(version, total, lines.drop(at).map { it.split(Regex("\\s+")) })
@@ -44,12 +45,12 @@ internal object BlockOta {
 
     /** "2,0,35195" → [0, 35195]: start/end pairs of blocks. */
     fun ranges(s: String): LongArray {
-        val v = s.split(',').map { it.trim().toLongOrNull() ?: throw OtaException("bad block range \"$s\"") }
-        if (v.isEmpty() || v[0] != (v.size - 1).toLong() || v[0] % 2L != 0L) throw OtaException("bad block range \"$s\"")
+        val v = s.split(',').map { it.trim().toLongOrNull() ?: throw OtaException("bad block range \"$s\"", R.string.ota_bad_block_range, s) }
+        if (v.isEmpty() || v[0] != (v.size - 1).toLong() || v[0] % 2L != 0L) throw OtaException("bad block range \"$s\"", R.string.ota_bad_block_range, s)
         val out = LongArray(v.size - 1) { v[it + 1] }
         var i = 0
         while (i < out.size) {
-            if (out[i] < 0 || out[i + 1] < out[i]) throw OtaException("bad block range \"$s\"")
+            if (out[i] < 0 || out[i + 1] < out[i]) throw OtaException("bad block range \"$s\"", R.string.ota_bad_block_range, s)
             i += 2
         }
         return out
@@ -146,7 +147,7 @@ internal object BlockOta {
         init {
             var i = 0
             while (i < r.size) {
-                if (r[i + 1] > totalBlocks) throw OtaException("the transfer list writes past the end of the image")
+                if (r[i + 1] > totalBlocks) throw OtaException("the transfer list writes past the end of the image", R.string.ota_the_transfer_list_writes_past_the)
                 i += 2
             }
         }
@@ -154,7 +155,7 @@ internal object BlockOta {
         override fun write(b: Int) { write(byteArrayOf(b.toByte()), 0, 1) }
 
         override fun write(b: ByteArray, off: Int, len: Int) {
-            if (written + len > capacity) throw OtaException("the transfer list produced more data than it has blocks for")
+            if (written + len > capacity) throw OtaException("the transfer list produced more data than it has blocks for", R.string.ota_the_transfer_list_produced_more_data)
             var o = off
             var left = len
             while (left > 0) {
@@ -166,7 +167,7 @@ internal object BlockOta {
         }
 
         fun requireDone() {
-            if (written != capacity) throw OtaException("the transfer list produced less data than it has blocks for")
+            if (written != capacity) throw OtaException("the transfer list produced less data than it has blocks for", R.string.ota_the_transfer_list_produced_less_data)
         }
     }
 
@@ -240,7 +241,7 @@ internal object BlockOta {
                 var at = 0L
                 for (s in segs) { pieces.add(Piece(at, s[1] * BLOCK, img, s[0] * BLOCK)); at += s[1] * BLOCK }
             } else {
-                if (count(locs) != count(srcR)) throw OtaException("the transfer list places a different number of blocks than it reads")
+                if (count(locs) != count(srcR)) throw OtaException("the transfer list places a different number of blocks than it reads", R.string.ota_the_transfer_list_places_a_different)
                 var si = 0
                 var sOff = 0L
                 var j = 0
@@ -261,9 +262,9 @@ internal object BlockOta {
         while (i < spec.size) {
             val ref = spec[i++]
             val c = ref.indexOf(':')
-            if (c < 0) throw OtaException("unreadable stash reference \"$ref\" in the transfer list")
+            if (c < 0) throw OtaException("unreadable stash reference \"$ref\" in the transfer list", R.string.ota_unreadable_stash_reference_in_the_transfer, ref)
             val sf = File(stashDir, "stash-" + ref.substring(0, c))
-            if (!sf.isFile) throw OtaException("the transfer list uses a stash it never made")
+            if (!sf.isFile) throw OtaException("the transfer list uses a stash it never made", R.string.ota_the_transfer_list_uses_a_stash)
             val raf = RandomAccessFile(sf, "r")
             opened.add(raf)
             val l = ranges(ref.substring(c + 1))
@@ -279,10 +280,10 @@ internal object BlockOta {
         pieces.sortBy { it.at }
         var pos = 0L
         for (p in pieces) {
-            if (p.at != pos) throw OtaException("the transfer list does not cover its source blocks exactly")
+            if (p.at != pos) throw OtaException("the transfer list does not cover its source blocks exactly", R.string.ota_the_transfer_list_does_not_cover)
             pos += p.len
         }
-        if (pos != srcBlocks * BLOCK) throw OtaException("the transfer list does not cover its source blocks exactly")
+        if (pos != srcBlocks * BLOCK) throw OtaException("the transfer list does not cover its source blocks exactly", R.string.ota_the_transfer_list_does_not_cover)
         return View(pieces, pos)
     }
 
@@ -323,8 +324,8 @@ internal object BlockOta {
         val ctrlLen = offtin(head, 8)
         val diffLen = offtin(head, 16)
         val newSize = offtin(head, 24)
-        if (ctrlLen < 0 || diffLen < 0 || newSize < 0 || 32 + ctrlLen + diffLen > len) throw OtaException("corrupt bsdiff patch")
-        if (newSize != expected) throw OtaException("a patch of the transfer list produces ${newSize} bytes, expected $expected")
+        if (ctrlLen < 0 || diffLen < 0 || newSize < 0 || 32 + ctrlLen + diffLen > len) throw OtaException("corrupt bsdiff patch", R.string.ota_corrupt_bsdiff_patch)
+        if (newSize != expected) throw OtaException("a patch of the transfer list produces ${newSize} bytes, expected $expected", R.string.ota_a_patch_of_the_transfer_list, newSize, expected)
         val ctrlS = DataInputStream(BZip2CompressorInputStream(BufferedInputStream(Slice(patch, off + 32, ctrlLen), 1 shl 16)))
         val diffS = DataInputStream(BZip2CompressorInputStream(BufferedInputStream(Slice(patch, off + 32 + ctrlLen, diffLen), 1 shl 16)))
         val extraS = DataInputStream(BZip2CompressorInputStream(BufferedInputStream(
@@ -340,7 +341,7 @@ internal object BlockOta {
                 val c0 = offtin(ctrl, 0)
                 val c1 = offtin(ctrl, 8)
                 val c2 = offtin(ctrl, 16)
-                if (c0 < 0 || c1 < 0 || newPos + c0 + c1 > newSize) throw OtaException("corrupt bsdiff patch")
+                if (c0 < 0 || c1 < 0 || newPos + c0 + c1 > newSize) throw OtaException("corrupt bsdiff patch", R.string.ota_corrupt_bsdiff_patch)
                 var left = c0
                 while (left > 0) {
                     val k = minOf(left, a.size.toLong()).toInt()
@@ -363,7 +364,7 @@ internal object BlockOta {
                 onProgress(newPos)
             }
         } catch (e: java.io.EOFException) {
-            throw OtaException("truncated bsdiff patch")
+            throw OtaException("truncated bsdiff patch", R.string.ota_truncated_bsdiff_patch)
         } finally {
             runCatching { ctrlS.close(); diffS.close(); extraS.close() }
         }
@@ -388,7 +389,7 @@ internal object BlockOta {
         val v3 = version >= 3
         val hashes = if (v3) (if (patch) 2 else 1) else 0
         val i = base + hashes
-        val srcBlocks = c[i + 1].toLongOrNull() ?: throw OtaException("bad ${c[0]} command in the transfer list")
+        val srcBlocks = c[i + 1].toLongOrNull() ?: throw OtaException("bad ${c[0]} command in the transfer list", R.string.ota_bad_command_in_the_transfer_list, c[0])
         val srcHash = if (!v3) null else if (patch) c[3] else c[1]
         val tgtHash = if (v3 && patch) c[4] else null
         return Operands(c[i], srcBlocks, c.drop(i + 2), srcHash, tgtHash)
@@ -423,20 +424,20 @@ internal object BlockOta {
      * run sees too: a transfer list stashes a block before it overwrites it, it never reads an overwritten one.
      * Throws an [OtaException] naming the first step that does not fit.
      */
-    fun verify(image: File, prog: Program, patchLength: Long, work: File, progress: (String) -> Unit) {
+    fun verify(image: File, prog: Program, patchLength: Long, work: File, progress: (Msg) -> Unit) {
         val stashDir = File(work, "verify-stash").apply { mkdirs() }
         val opened = ArrayList<RandomAccessFile>()
         try {
             RandomAccessFile(image, "r").use { img ->
                 for ((n, c) in prog.commands.withIndex()) {
-                    if (n % 32 == 0) progress("Checking the system image: step ${n + 1}/${prog.commands.size}")
+                    if (n % 32 == 0) progress(Msg("Checking the system image: step ${n + 1}/${prog.commands.size}", R.string.ota_checking_the_system_image_step, n + 1, prog.commands.size))
                     try {
                         when (c[0]) {
                             "new", "zero", "erase" -> {}
                             "stash" -> {
                                 val got = writeStash(img, ranges(c[2]), File(stashDir, "stash-" + c[1]))
                                 if (prog.version >= 3 && got != c[1].lowercase())
-                                    throw OtaException("the blocks stashed in step ${n + 1} differ from what the OTA expects")
+                                    throw OtaException("the blocks stashed in step ${n + 1} differ from what the OTA expects", R.string.ota_the_blocks_stashed_in_step_differ, n + 1)
                             }
                             "free" -> File(stashDir, "stash-" + c[1]).delete()
                             "move", "bsdiff", "imgdiff" -> {
@@ -445,18 +446,18 @@ internal object BlockOta {
                                 val srcHash = op.srcHash
                                 val srcBlocks = op.srcBlocks
                                 if (patchCmd) {
-                                    val pOff = c[1].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list")
-                                    val pLen = c[2].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list")
-                                    if (pOff < 0 || pLen < 0 || pOff + pLen > patchLength) throw OtaException("the transfer list points outside the patch data")
+                                    val pOff = c[1].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list", R.string.ota_bad_patch_command_in_the_transfer)
+                                    val pLen = c[2].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list", R.string.ota_bad_patch_command_in_the_transfer)
+                                    if (pOff < 0 || pLen < 0 || pOff + pLen > patchLength) throw OtaException("the transfer list points outside the patch data", R.string.ota_the_transfer_list_points_outside_the)
                                 }
                                 val view = buildView(op.spec, srcBlocks, img, stashDir, opened)
                                 if (srcHash != null && view.sha1() != srcHash.lowercase())
-                                    throw OtaException("the source blocks of step ${n + 1} differ from what the OTA expects")
+                                    throw OtaException("the source blocks of step ${n + 1} differ from what the OTA expects", R.string.ota_the_source_blocks_of_step_differ, n + 1)
                             }
-                            else -> throw OtaException("the transfer list uses \"${c[0]}\", which this app cannot run")
+                            else -> throw OtaException("the transfer list uses \"${c[0]}\", which this app cannot run", R.string.ota_the_transfer_list_uses_which_this, c[0])
                         }
                     } catch (e: IndexOutOfBoundsException) {
-                        throw OtaException("unreadable command in the transfer list: ${c.joinToString(" ")}")
+                        throw OtaException("unreadable command in the transfer list: ${c.joinToString(" ")}", R.string.ota_unreadable_command_in_the_transfer_list, c.joinToString(" "))
                     } finally {
                         opened.forEach { runCatching { it.close() } }
                         opened.clear()
@@ -473,7 +474,7 @@ internal object BlockOta {
      * Runs [prog] on the partition image [image] in place. [newData] is the stream of system.new.dat (already
      * decompressed), [patch] the file system.patch.dat; [work] is a folder for temporary files.
      */
-    fun apply(image: File, prog: Program, newData: InputStream, patch: File, work: File, progress: (String) -> Unit) {
+    fun apply(image: File, prog: Program, newData: InputStream, patch: File, work: File, progress: (Msg) -> Unit) {
         val stashDir = File(work, "stash").apply { mkdirs() }
         val opened = ArrayList<RandomAccessFile>()
         try {
@@ -485,7 +486,7 @@ internal object BlockOta {
                     if (img.length() < total * BLOCK) img.setLength(total * BLOCK)
                     val newBuf = ByteArray(1 shl 20)
                     for ((n, c) in prog.commands.withIndex()) {
-                        if (n % 16 == 0) progress("Updating the system image: step ${n + 1}/${prog.commands.size}")
+                        if (n % 16 == 0) progress(Msg("Updating the system image: step ${n + 1}/${prog.commands.size}", R.string.ota_updating_the_system_image_step, n + 1, prog.commands.size))
                         try {
                             when (c[0]) {
                                 "new" -> {
@@ -493,7 +494,7 @@ internal object BlockOta {
                                     var left = count(ranges(c[1])) * BLOCK
                                     while (left > 0) {
                                         val k = minOf(left, newBuf.size.toLong()).toInt()
-                                        if (!readFully(newData, newBuf, k)) throw OtaException("the new data of this OTA is shorter than its transfer list needs")
+                                        if (!readFully(newData, newBuf, k)) throw OtaException("the new data of this OTA is shorter than its transfer list needs", R.string.ota_the_new_data_of_this_ota)
                                         out.write(newBuf, 0, k)
                                         left -= k
                                     }
@@ -511,7 +512,7 @@ internal object BlockOta {
                                     val r = ranges(c[2])
                                     val got = writeStash(img, r, File(stashDir, "stash-$id"))
                                     if (prog.version >= 3 && got != id.lowercase())
-                                        throw OtaException("stashed blocks differ from what the OTA expects")
+                                        throw OtaException("stashed blocks differ from what the OTA expects", R.string.ota_stashed_blocks_differ_from_what_the)
                                 }
                                 "free" -> File(stashDir, "stash-" + c[1]).delete()
                                 "move" -> {
@@ -520,8 +521,8 @@ internal object BlockOta {
                                     val tgt = ranges(op.tgt)
                                     val srcBlocks = op.srcBlocks
                                     val view = buildView(op.spec, srcBlocks, img, stashDir, opened)
-                                    if (srcHash != null && view.sha1() != srcHash.lowercase()) throw OtaException("source blocks differ from what the OTA expects")
-                                    if (count(tgt) != srcBlocks) throw OtaException("bad move command in the transfer list")
+                                    if (srcHash != null && view.sha1() != srcHash.lowercase()) throw OtaException("source blocks differ from what the OTA expects", R.string.ota_source_blocks_differ_from_what_the)
+                                    if (count(tgt) != srcBlocks) throw OtaException("bad move command in the transfer list", R.string.ota_bad_move_command_in_the_transfer)
                                     val out = RangeOut(img, tgt, total)
                                     if (view.size <= SMALL) {
                                         val b = ByteArray(view.size.toInt())
@@ -546,16 +547,16 @@ internal object BlockOta {
                                     out.requireDone()
                                 }
                                 "bsdiff", "imgdiff" -> {
-                                    val pOff = c[1].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list")
-                                    val pLen = c[2].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list")
+                                    val pOff = c[1].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list", R.string.ota_bad_patch_command_in_the_transfer)
+                                    val pLen = c[2].toLongOrNull() ?: throw OtaException("bad patch command in the transfer list", R.string.ota_bad_patch_command_in_the_transfer)
                                     val op = operands(c, prog.version, true)
                                     val srcHash = op.srcHash
                                     val tgtHash = op.tgtHash
                                     val tgt = ranges(op.tgt)
                                     val srcBlocks = op.srcBlocks
-                                    if (pOff < 0 || pLen < 0 || pOff + pLen > pf.length()) throw OtaException("the transfer list points outside the patch data")
+                                    if (pOff < 0 || pLen < 0 || pOff + pLen > pf.length()) throw OtaException("the transfer list points outside the patch data", R.string.ota_the_transfer_list_points_outside_the)
                                     val view = buildView(op.spec, srcBlocks, img, stashDir, opened)
-                                    if (srcHash != null && view.sha1() != srcHash.lowercase()) throw OtaException("source blocks differ from what the OTA expects")
+                                    if (srcHash != null && view.sha1() != srcHash.lowercase()) throw OtaException("source blocks differ from what the OTA expects", R.string.ota_source_blocks_differ_from_what_the)
                                     val tgtBytes = count(tgt) * BLOCK
                                     val out = RangeOut(img, tgt, total)
                                     if (c[0] == "bsdiff" && (view.size > SMALL || tgtBytes > SMALL) && isBsdiff(pf, pOff, pLen)) {
@@ -566,7 +567,7 @@ internal object BlockOta {
                                             BufferedOutputStream(FileOutputStream(tmp), 1 shl 20).use { o ->
                                                 bspatch(view, pf, pOff, pLen, o, tgtBytes) { done ->
                                                     val pct = (done * 100 / tgtBytes.coerceAtLeast(1)).toInt()
-                                                    if (pct != shown) { shown = pct; progress("Patching the system image: $pct%") }
+                                                    if (pct != shown) { shown = pct; progress(Msg("Patching the system image: $pct%", R.string.ota_patching_the_system_image, pct)) }
                                                 }
                                             }
                                             val buf = ByteArray(1 shl 20)
@@ -575,7 +576,7 @@ internal object BlockOta {
                                             }
                                         } finally { tmp.delete() }
                                     } else {
-                                        if (view.size > BIG || pLen > BIG) throw OtaException("a patch of this OTA is too large to apply in memory")
+                                        if (view.size > BIG || pLen > BIG) throw OtaException("a patch of this OTA is too large to apply in memory", R.string.ota_a_patch_of_this_ota_is)
                                         val old = ByteArray(view.size.toInt())
                                         view.read(0, old, 0, old.size)
                                         val pb = ByteArray(pLen.toInt())
@@ -583,21 +584,22 @@ internal object BlockOta {
                                         val res = try {
                                             ImgPatch.apply(old, pb)
                                         } catch (e: OutOfMemoryError) {
-                                            throw OtaException("not enough memory to apply a patch of this OTA")
+                                            throw OtaException("not enough memory to apply a patch of this OTA", R.string.ota_not_enough_memory_to_apply_a)
                                         } catch (e: IOException) {
-                                            throw OtaException(e.message ?: "a patch of this OTA could not be applied")
+                                            throw (e.message?.let { OtaException(it) }
+                                                ?: OtaException("a patch of this OTA could not be applied", R.string.ota_a_patch_could_not_be_applied))
                                         }
-                                        if (res.size.toLong() != tgtBytes) throw OtaException("a patch of the transfer list produced the wrong amount of data")
+                                        if (res.size.toLong() != tgtBytes) throw OtaException("a patch of the transfer list produced the wrong amount of data", R.string.ota_a_patch_of_the_transfer_list_2)
                                         out.write(res, 0, res.size)
                                     }
                                     out.requireDone()
                                     if (tgtHash != null && rangeSha1(img, tgt) != tgtHash.lowercase())
-                                        throw OtaException("a patch of the transfer list did not produce the expected blocks")
+                                        throw OtaException("a patch of the transfer list did not produce the expected blocks", R.string.ota_a_patch_of_the_transfer_list_3)
                                 }
-                                else -> throw OtaException("the transfer list uses \"${c[0]}\", which this app cannot run")
+                                else -> throw OtaException("the transfer list uses \"${c[0]}\", which this app cannot run", R.string.ota_the_transfer_list_uses_which_this, c[0])
                             }
                         } catch (e: IndexOutOfBoundsException) {
-                            throw OtaException("unreadable command in the transfer list: ${c.joinToString(" ")}")
+                            throw OtaException("unreadable command in the transfer list: ${c.joinToString(" ")}", R.string.ota_unreadable_command_in_the_transfer_list, c.joinToString(" "))
                         } finally {
                             opened.forEach { runCatching { it.close() } }
                             opened.clear()

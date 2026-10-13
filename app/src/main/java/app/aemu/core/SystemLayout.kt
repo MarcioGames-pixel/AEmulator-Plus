@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition: block OTA support. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import app.aemu.importer.Ext4Reader
 import app.aemu.importer.RandomSource
 import java.io.BufferedOutputStream
@@ -208,7 +209,7 @@ class SystemLayout private constructor(
          * the data of every file as [content] returns it (null = the file in the VM is not the stock one).
          * Returns the paths of the files [content] could not provide; the image is only complete if there are none.
          */
-        fun rebuild(layout: File, out: File, content: (LFile) -> ByteArray?, progress: (String) -> Unit = {}): List<String> {
+        fun rebuild(layout: File, out: File, content: (LFile) -> ByteArray?, progress: (Msg) -> Unit = {}): List<String> {
             val bad = ArrayList<String>()
             DataInputStream(InflaterInputStream(FileInputStream(layout).buffered(1 shl 16))).use { inp ->
                 val l = readTables(inp)
@@ -233,7 +234,7 @@ class SystemLayout private constructor(
                     var done = 0
                     val withData = l.files.values.filter { it.extents.isNotEmpty() }
                     for (f in withData) {
-                        if (done++ % 64 == 0) progress("Rebuilding the stock system image ${done}/${withData.size}")
+                        if (done++ % 64 == 0) progress(Msg("Rebuilding the stock system image ${done}/${withData.size}", R.string.ota_rebuilding_the_stock_system_image_2, done, withData.size))
                         val data = content(f)
                         if (data == null || data.size.toLong() != f.size) { bad.add(f.path); continue }
                         var k = 0

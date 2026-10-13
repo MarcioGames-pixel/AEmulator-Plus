@@ -3,6 +3,7 @@
  * GPL-3.0; upstream attribution retained in NOTICE.md. */
 package app.aemu.ui
 
+import app.aemu.core.userMessage
 import app.aemu.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
@@ -140,8 +141,9 @@ fun SettingsSheet(img: GuestImage, onDismiss: () -> Unit, onSave: (VmSettings) -
             Toggle(stringResource(R.string.vs_proxy), stringResource(R.string.vs_proxy_sub), s.netProxy) { s = s.copy(netProxy = it) }
             Toggle(stringResource(R.string.vs_vibration), stringResource(R.string.vs_vibration_sub), s.vibration) { s = s.copy(vibration = it) }
             Toggle(stringResource(R.string.vs_host_battery), stringResource(R.string.vs_host_battery_sub), s.hostBattery) { s = s.copy(hostBattery = it) }
-            if (img.api in 9..25) Toggle(stringResource(R.string.vs_motion), stringResource(R.string.vs_motion_sub), s.motionSensors) { s = s.copy(motionSensors = it) }
-            if (img.api in 9..25 && s.motionSensors) GyroLockPicker(s.gyroLock) { s = s.copy(gyroLock = it) }
+            if (img.api in 9..25) Toggle(stringResource(R.string.vs_no_sensors), stringResource(R.string.vs_no_sensors_sub), img.sensorsOff(s)) { s = s.copy(disableSensors = it) }
+            if (img.api in 9..25 && !img.sensorsOff(s)) Toggle(stringResource(R.string.vs_motion), stringResource(R.string.vs_motion_sub), s.motionSensors) { s = s.copy(motionSensors = it) }
+            if (img.api in 9..25 && !img.sensorsOff(s) && s.motionSensors) GyroLockPicker(s.gyroLock) { s = s.copy(gyroLock = it) }
             if (img.api in 16..25) Toggle(stringResource(R.string.vs_skip_setup), stringResource(R.string.vs_skip_setup_sub), s.skipSetupWizard) { s = s.copy(skipSetupWizard = it) }
             if (img.api in 9..25) Toggle(stringResource(R.string.vs_disable_google), stringResource(R.string.vs_disable_google_sub), s.disableGoogleApps) { s = s.copy(disableGoogleApps = it) }
             if (img.api in 9..25) {
@@ -383,7 +385,7 @@ private fun NumField(label: String, value: Int, modifier: Modifier, set: (Int) -
 private fun RecoverySection(img: GuestImage) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val paths = remember(img.id) { app.aemu.core.VmPaths(ctx, img.id) }
-    var status by remember { mutableStateOf(recoveryStatus(paths)) }
+    var status by remember { mutableStateOf(recoveryStatus(ctx, paths)) }
     var busy by remember { mutableStateOf(false) }
     val failed = stringResource(R.string.vs_recovery_failed)
     val pick = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -397,7 +399,7 @@ private fun RecoverySection(img: GuestImage) {
             }.getOrDefault(false)
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 busy = false
-                status = recoveryStatus(paths)
+                status = recoveryStatus(ctx, paths)
                 if (!ok) android.widget.Toast.makeText(ctx, failed, android.widget.Toast.LENGTH_LONG).show()
             }
         }.start()
@@ -433,7 +435,7 @@ private fun OtaSection(img: GuestImage, busy: Boolean, setBusy: (Boolean) -> Uni
             val result = withContext(Dispatchers.IO) { runCatching { app.aemu.core.DeltaOta.prepare(ctx, img.id, uri) } }
             setBusy(false)
             result.onSuccess { prepared?.close(); prepared = it; message = null }
-                .onFailure { message = ctx.getString(R.string.vs_ota_failed, it.message ?: it.javaClass.simpleName) }
+                .onFailure { message = ctx.getString(R.string.vs_ota_failed, it.userMessage(ctx)) }
         }
     }
     Text(stringResource(R.string.vs_ota), style = MaterialTheme.typography.titleMedium)
@@ -464,15 +466,15 @@ private fun OtaSection(img: GuestImage, busy: Boolean, setBusy: (Boolean) -> Uni
                     val result = withContext(Dispatchers.IO) {
                         runCatching {
                             p.use { app.aemu.core.DeltaOta.install(ctx, img.id, it) { stage ->
-                                message = ctx.getString(R.string.vs_ota_working, stage)
+                                message = ctx.getString(R.string.vs_ota_working, stage.text(ctx))
                             } }
                         }
                     }
                     setBusy(false)
                     message = result.fold(
                         { ctx.getString(R.string.vs_ota_done, it.toBuild, it.patched, it.added, it.removed) +
-                            it.notes.joinToString("") { n -> "\n$n" } },
-                        { ctx.getString(R.string.vs_ota_failed, it.message ?: it.javaClass.simpleName) },
+                            it.notes.joinToString("") { n -> "\n" + n.text(ctx) } },
+                        { ctx.getString(R.string.vs_ota_failed, it.userMessage(ctx)) },
                     )
                 }
             }) { Text(stringResource(R.string.vs_ota_confirm_ok)) } },
@@ -480,7 +482,7 @@ private fun OtaSection(img: GuestImage, busy: Boolean, setBusy: (Boolean) -> Uni
     }
 }
 
-private fun recoveryStatus(paths: app.aemu.core.VmPaths): String? {
+private fun recoveryStatus(ctx: android.content.Context, paths: app.aemu.core.VmPaths): String? {
     if (!app.aemu.core.RecoveryImage.installed(paths)) return null
     val dir = app.aemu.core.RecoveryImage.dir(paths)
     val prop = runCatching { java.io.File(dir, "default.prop").readText() }.getOrDefault("")
@@ -490,6 +492,6 @@ private fun recoveryStatus(paths: app.aemu.core.VmPaths): String? {
         java.io.File(dir, "twres").isDirectory -> "TWRP"
         java.io.File(dir, "sbin/orangefox.sh").exists() || prop.contains("orangefox", true) -> "OrangeFox"
         prop.contains("cwm", true) || java.io.File(dir, "res/images/icon_clockwork.png").exists() -> "ClockworkMod"
-        else -> "Stock recovery"
+        else -> ctx.getString(R.string.vs_recovery_stock)
     }
 }

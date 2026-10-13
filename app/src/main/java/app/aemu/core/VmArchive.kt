@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-03. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -74,12 +75,12 @@ internal object VmArchive {
                 if (attrs.isRegularFile) file.inputStream().use { it.copyTo(tar, 65536) }
                 tar.closeArchiveEntry()
                 progress(name)
-                if (attrs.isDirectory) for (child in (file.listFiles() ?: error("Cannot read $name")).sortedBy { it.name })
+                if (attrs.isDirectory) for (child in (file.listFiles() ?: localizedError("Cannot read $name", R.string.err_cannot_read, name)).sortedBy { it.name })
                     add(child, "$name/${child.name}")
             }
             // Old containers may share /system: materialize it, not the container's host link.
             if (selection.system) add(system, "root/system")
-            for (file in (root.listFiles() ?: error("Cannot read root")).sortedBy { it.name }) {
+            for (file in (root.listFiles() ?: localizedError("Cannot read root", R.string.err_cannot_read_root)).sortedBy { it.name }) {
                 if (file.name == "system" || file.name in runtime ||
                     (file.name == "data" && !selection.data) || (file.name != "data" && !selection.system)) continue
                 add(file, "root/${file.name}")
@@ -100,7 +101,7 @@ internal object VmArchive {
         var image: String? = null
         var selection: Selection? = null
         TarArchiveInputStream(GZIPInputStream(input.buffered(65536))).use { tar ->
-            val first = tar.nextTarEntry ?: error("Empty VM archive")
+            val first = tar.nextTarEntry ?: localizedError("Empty VM archive", R.string.err_empty_vm_archive)
             val version = readVersion(first, tar)
             while (true) {
                 val entry = tar.nextTarEntry ?: break
@@ -120,7 +121,7 @@ internal object VmArchive {
                     continue
                 }
                 if (version == 2 && name != "image.json") {
-                    val parts = selection ?: error("Missing archive component selection")
+                    val parts = selection ?: localizedError("Missing archive component selection", R.string.err_missing_archive_component_selection)
                     if (name == "root/data" || name.startsWith("root/data/")) require(parts.data)
                     else if (name != "root") require(parts.system)
                 }
@@ -153,7 +154,7 @@ internal object VmArchive {
             var parent = file.parentFile
             while (parent != dir) {
                 require(!Files.isSymbolicLink(parent.toPath())) { "Link parent is a symlink" }
-                parent = parent.parentFile ?: error("Invalid link parent")
+                parent = parent.parentFile ?: localizedError("Invalid link parent", R.string.err_invalid_link_parent)
             }
             require(!Files.exists(file.toPath(), NOFOLLOW_LINKS)) { "Link conflicts with archive directory" }
             require(file.parentFile.isDirectory || file.parentFile.mkdirs())
@@ -166,12 +167,12 @@ internal object VmArchive {
 
     /** Read bounded leading metadata only; importing settings never extracts partitions. */
     fun profile(input: InputStream): Profile = TarArchiveInputStream(GZIPInputStream(input.buffered(65536))).use { tar ->
-        val version = readVersion(tar.nextTarEntry ?: error("Empty archive"), tar)
-        val entry = tar.nextTarEntry ?: error("Missing VM profile")
+        val version = readVersion(tar.nextTarEntry ?: localizedError("Empty archive", R.string.err_empty_archive), tar)
+        val entry = tar.nextTarEntry ?: localizedError("Missing VM profile", R.string.err_missing_vm_profile)
         require(entry.name == "image.json" && entry.isFile && entry.size in 1..1_048_576)
         val json = tar.readBytes().toString(Charsets.UTF_8)
         val parts = if (version == 1) Selection() else {
-            val next = tar.nextTarEntry ?: error("Missing component selection")
+            val next = tar.nextTarEntry ?: localizedError("Missing component selection", R.string.err_missing_component_selection)
             require(next.name == "aessvm.parts" && next.isFile && next.size == 4L)
             Selection.decode(tar.readBytes().toString(Charsets.UTF_8))
         }
@@ -182,7 +183,7 @@ internal object VmArchive {
         return when (tar.readBytes().toString(Charsets.UTF_8)) {
             "1\n" -> 1
             "2\n" -> 2
-            else -> throw IllegalArgumentException("Unsupported VM archive")
+            else -> throw LocalizedIllegalArgumentException("Unsupported VM archive", R.string.err_unsupported_vm_archive)
         }
     }
 }

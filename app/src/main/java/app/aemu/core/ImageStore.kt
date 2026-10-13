@@ -1,5 +1,6 @@
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.system.Os
 import org.json.JSONObject
@@ -76,7 +77,7 @@ object ImageStore {
         val from = VmPaths(ctx, src.id)
         val need = du(from.root) + du(File(from.root, "system").canonicalFile).takeIf { File(from.root, "system").canonicalPath != File(from.root, "system").path } .let { it ?: 0 }
         val free = imagesDir(ctx).usableSpace
-        if (need + (200L shl 20) > free) error("not enough space: need ${need shr 20} MB, free ${free shr 20} MB")
+        if (need + (200L shl 20) > free) localizedError("not enough space: need ${need shr 20} MB, free ${free shr 20} MB", R.string.err_not_enough_space_need_mb_free, need shr 20, free shr 20)
         val id = newId(ctx)
         val to = VmPaths(ctx, id)
         try {

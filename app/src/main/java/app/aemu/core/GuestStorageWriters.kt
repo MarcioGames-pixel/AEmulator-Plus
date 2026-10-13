@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-02. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.os.Process
 import android.system.Os
@@ -10,7 +11,7 @@ import java.io.File
  * unreadable same-UID process information fails closed. Caller holds storage lease. */
 internal object GuestStorageWriters {
     fun requireIdle(ctx: Context) {
-        val proc = File("/proc").listFiles() ?: error("Cannot inspect guest processes")
+        val proc = File("/proc").listFiles() ?: localizedError("Cannot inspect guest processes", R.string.err_cannot_inspect_guest_processes)
         for (entry in proc) {
             val pid = entry.name.toIntOrNull() ?: continue
             if (pid == Process.myPid()) continue

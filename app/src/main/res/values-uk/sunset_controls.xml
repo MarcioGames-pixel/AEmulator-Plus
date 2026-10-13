@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Чутливість: %1$d dp на крок (менше — швидше)</string>
     <string name="nav_trackball_waiting">З’єднання з трекболом гостя ще немає</string>
     <string name="nav_trackball_recovery">Recovery: використовуйте режим клавіш зі стрілками</string>
+    <string name="nav_go_to_recovery">Перейти до recovery</string>
+    <string name="vs_bluetooth">Bluetooth хоста (експериментально)</string>
+    <string name="vs_bluetooth_sub">Дозволяє гостю сканувати, перелічувати сполучені пристрої та обмінюватися даними з Bluetooth-пристроями через телефон: класичний послідовний порт (RFCOMM) і Bluetooth LE (GATT). Потрібен дозвіл Bluetooth і повний перезапуск ВМ. Це не «сирий» HCI: гість бачить адаптер телефона через міст, тому гарнітури (аудіопрофілі) не підтримуються.</string>
+    <string name="bluetooth_permission_denied">Дозвіл Bluetooth відхилено: гість завантажиться без Bluetooth хоста.</string>
 </resources>

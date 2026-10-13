@@ -2,6 +2,8 @@
  * GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.ui
 
+import app.aemu.core.userMessage
+import app.aemu.R
 import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -33,6 +35,11 @@ class LibraryModel(app: Application) : AndroidViewModel(app) {
     private val _import = MutableStateFlow(ImportState())
     val import: StateFlow<ImportState> = _import
     private var importer: Importer? = null
+    /** The application context does not know the language picked in the app; this one does. */
+    private val lctx: android.content.Context get() = app.aemu.AppPrefs.wrap(getApplication())
+
+    private fun failureText(t: Throwable): String =
+        if (t.message == "cancelled") lctx.getString(R.string.import_cancelled) else t.userMessage(lctx)
 
     init { refresh() }
 
@@ -49,8 +56,8 @@ class LibraryModel(app: Application) : AndroidViewModel(app) {
             ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
                 if (c.moveToFirst()) c.getString(0) else null
             }
-        }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: "firmware"
-        _import.value = ImportState(active = true, file = name, step = "Starting")
+        }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: lctx.getString(R.string.import_default_name)
+        _import.value = ImportState(active = true, file = name, step = lctx.getString(R.string.import_start))
         viewModelScope.launch(Dispatchers.IO) {
             val log = ArrayList<String>()
             val imp = Importer(ctx,
@@ -67,9 +74,9 @@ class LibraryModel(app: Application) : AndroidViewModel(app) {
                     trackballDpad = d.trackballDpad, trackballStepDp = d.trackballStepDp,
                     keepScreenOn = d.keepScreenOn))
                 if (img != raw) ImageStore.save(ctx, img)
-                _import.value = _import.value.copy(active = false, done = img, step = "Done", progress = 1f)
+                _import.value = _import.value.copy(active = false, done = img, step = lctx.getString(R.string.import_ready), progress = 1f)
             } catch (t: Throwable) {
-                _import.value = _import.value.copy(active = false, error = t.message ?: t.toString())
+                _import.value = _import.value.copy(active = false, error = failureText(t))
             } finally {
                 importer = null
                 refresh()
@@ -80,13 +87,13 @@ class LibraryModel(app: Application) : AndroidViewModel(app) {
     fun clone(src: GuestImage, name: String, copyData: Boolean) {
         if (_import.value.active) return
         val ctx = getApplication<Application>()
-        _import.value = ImportState(active = true, file = name, step = "Copying")
+        _import.value = ImportState(active = true, file = name, step = lctx.getString(R.string.import_copying))
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val img = ImageStore.clone(ctx, src, name, copyData) { s -> _import.value = _import.value.copy(step = "Copying $s") }
-                _import.value = _import.value.copy(active = false, done = img, step = "Done", progress = 1f)
+                val img = ImageStore.clone(ctx, src, name, copyData) { s -> _import.value = _import.value.copy(step = lctx.getString(R.string.import_copying_x, s)) }
+                _import.value = _import.value.copy(active = false, done = img, step = lctx.getString(R.string.import_ready), progress = 1f)
             } catch (t: Throwable) {
-                _import.value = _import.value.copy(active = false, error = t.message ?: t.toString())
+                _import.value = _import.value.copy(active = false, error = failureText(t))
             } finally { refresh() }
         }
     }

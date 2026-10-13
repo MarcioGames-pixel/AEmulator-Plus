@@ -38,7 +38,7 @@ internal fun VmImportSection(img: GuestImage, busy: Boolean, setBusy: (Boolean) 
                 } }
                 setBusy(false)
                 result.onSuccess { (source, differs) -> if (differs) warning = source else accept(source) }
-                    .onFailure { message = ctx.getString(R.string.vm_import_failed, it.message.orEmpty()) }
+                    .onFailure { message = ctx.getString(R.string.vm_import_failed, it.userMessage(ctx)) }
             }
         }
     }
@@ -52,7 +52,7 @@ internal fun VmImportSection(img: GuestImage, busy: Boolean, setBusy: (Boolean) 
                 bootPresent = BootPartitionImport.present(VmPaths(ctx, img.id).dir)
                 setBusy(false)
                 message = result.fold({ ctx.getString(R.string.vm_import_boot_done) },
-                    { ctx.getString(R.string.vm_import_failed, it.message.orEmpty()) })
+                    { ctx.getString(R.string.vm_import_failed, it.userMessage(ctx)) })
             }
         }
     }
@@ -92,7 +92,7 @@ internal fun OemImportSection(img: GuestImage, busy: Boolean, setBusy: (Boolean)
                 oemPresent = OemPartitionImport.present(VmPaths(ctx, img.id).dir)
                 setBusy(false)
                 message = result.fold({ ctx.getString(R.string.vm_import_oem_done) },
-                    { ctx.getString(R.string.vm_import_failed, it.message.orEmpty()) })
+                    { ctx.getString(R.string.vm_import_failed, it.userMessage(ctx)) })
             }
         }
     }

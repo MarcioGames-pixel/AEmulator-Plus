@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Skrýt tlačítko nabídky</string>
+    <string name="vs_hide_menu_sub">Skryje tlačítko …. Tlačítko Zpět telefonu nebo gesto zpět místo odeslání Zpět do Androidu otevře nabídku emulátoru. Navigační tlačítka hostovaného systému dál ovládají Android.</string>
+    <string name="vs_vibration">Vibrace hostovaného systému</string>
+    <string name="vs_vibration_sub">Předávat starší vibrace hostovaného systému do telefonu. Použije se při příštím spuštění; každý impuls je omezen na 60 sekund.</string>
+    <string name="nav_buttons">Navigační tlačítka</string>
+    <string name="nav_order">Pořadí tlačítek (zleva doprava)</string>
+    <string name="nav_earlier">Dříve</string>
+    <string name="nav_later">Později</string>
+    <string name="nav_reset">Obnovit tlačítka</string>
+    <string name="nav_search">Hledat</string>
+    <string name="nav_power">Vypínač</string>
+    <string name="nav_go_to_recovery">Přejít do recovery</string>
+    <string name="nav_volume_down">Ztišit</string>
+    <string name="nav_volume_up">Zesílit</string>
+    <string name="nav_up">D-pad nahoru</string>
+    <string name="nav_down">D-pad dolů</string>
+    <string name="nav_left">D-pad vlevo</string>
+    <string name="nav_right">D-pad vpravo</string>
+    <string name="nav_center">D-pad střed</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Tažením po kruhu nad navigační lištou otáčíte kuličkou; klepnutím vyberete.</string>
+    <string name="nav_dpad_mode">Režim šipek</string>
+    <string name="nav_dpad_sub">Vypnuto: skutečné relativní události trackballu pro aplikace v hostovaném systému. Zapnuto: místo nich stisky kláves D-pad. Neposílá obojí.</string>
+    <string name="nav_sensitivity">Citlivost: %1$d dp na krok (nižší je rychlejší)</string>
+    <string name="nav_trackball_waiting">Zatím žádné připojení trackballu hostovaného systému</string>
+    <string name="nav_trackball_recovery">Recovery: použijte režim šipek</string>
+    <string name="vs_bluetooth">Bluetooth hostitele (experimentální)</string>
+    <string name="vs_bluetooth_sub">Umožní hostovanému systému vyhledávat zařízení Bluetooth, zobrazovat spárovaná a komunikovat s nimi přes telefon: klasický sériový port (RFCOMM) a Bluetooth LE (GATT). Vyžaduje oprávnění Bluetooth a úplný restart VM. Nejde o surové HCI: hostovaný systém vidí adaptér telefonu přes most, takže sluchátka (zvukové profily) nejsou podporována.</string>
+    <string name="bluetooth_permission_denied">Oprávnění Bluetooth zamítnuto: hostovaný systém se spustí bez Bluetooth hostitele.</string>
+</resources>

@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition: delta OTA support. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.net.Uri
 import android.system.Os
@@ -23,7 +24,10 @@ import java.security.MessageDigest
 import java.util.zip.ZipFile
 
 /** A reason the OTA cannot be applied; the message is meant for the person using the app. */
-class OtaException(message: String) : Exception(message)
+class OtaException(message: String, @androidx.annotation.StringRes override val resId: Int = 0, vararg args: Any?) :
+    Exception(message), LocalizedError {
+    override val resArgs: Array<out Any?> = args
+}
 
 /** META-INF/com/android/metadata of an OTA package. */
 class OtaMetadata(
@@ -86,7 +90,7 @@ object DeltaOta {
         val added: Int,
         val removed: Int,
         val bootUpdated: Boolean,
-        val notes: List<String>,
+        val notes: List<Msg>,
     )
 
     // ------------------------------------------------------------------ step 1: metadata vs build.prop
@@ -99,11 +103,11 @@ object DeltaOta {
         ctx.cacheDir.listFiles()?.filter { it.name.startsWith("ota-") && it.name.endsWith(".zip") }?.forEach { it.delete() }
         val tmp = File.createTempFile("ota-", ".zip", ctx.cacheDir)
         try {
-            (ctx.contentResolver.openInputStream(uri) ?: throw OtaException("cannot open the file"))
+            (ctx.contentResolver.openInputStream(uri) ?: throw OtaException("cannot open the file", R.string.ota_cannot_open_the_file))
                 .use { i -> tmp.outputStream().use { o -> i.copyTo(o, 1 shl 16) } }
             val meta = try {
                 ZipFile(tmp).use { readMetadata(it) }
-            } catch (e: java.util.zip.ZipException) { throw OtaException("not a zip file") }
+            } catch (e: java.util.zip.ZipException) { throw OtaException("not a zip file", R.string.ota_not_a_zip_file) }
             val v = verifyBuild(props, meta)
             ZipFile(tmp).use { z ->
                 val script = scriptText(z).orEmpty()
@@ -118,15 +122,15 @@ object DeltaOta {
 
     private fun checkTree(paths: VmPaths) {
         val sys = File(paths.root, "system")
-        val st = runCatching { Os.lstat(sys.path) }.getOrNull() ?: throw OtaException("this VM has no /system")
+        val st = runCatching { Os.lstat(sys.path) }.getOrNull() ?: throw OtaException("this VM has no /system", R.string.ota_this_vm_has_no_system)
         if (OsConstants.S_ISLNK(st.st_mode))
-            throw OtaException("this VM shares /system with another VM; clone it into its own VM first")
-        if (!sys.isDirectory) throw OtaException("this VM has no /system")
+            throw OtaException("this VM shares /system with another VM; clone it into its own VM first", R.string.ota_this_vm_shares_system_with_another)
+        if (!sys.isDirectory) throw OtaException("this VM has no /system", R.string.ota_this_vm_has_no_system)
     }
 
     private fun readBuildProp(paths: VmPaths): Map<String, String> {
         val f = File(paths.root, "system/build.prop")
-        if (!f.isFile) throw OtaException("this system has no build.prop")
+        if (!f.isFile) throw OtaException("this system has no build.prop", R.string.ota_this_system_has_no_build_prop)
         return PropArea.parseProps(f.readText(Charsets.UTF_8))
     }
 
@@ -143,7 +147,7 @@ object DeltaOta {
     /** The first assert of an update-script lists the build it is for, and the one it leads to when run again. */
     private fun legacyMetadata(text: String): OtaMetadata {
         val fps = LEGACY_FP.findAll(text.lineSequence().firstOrNull { it.contains("ro.build.fingerprint") }.orEmpty()).map { it.groupValues[1] }.toList()
-        if (fps.isEmpty()) throw OtaException("this OTA's update-script does not say which build it is for")
+        if (fps.isEmpty()) throw OtaException("this OTA's update-script does not say which build it is for", R.string.ota_this_ota_s_update_script_does)
         val devices = LEGACY_DEV.findAll(text).map { it.groupValues[1] }.toSortedSet().toList()
         return OtaMetadata(listOf(fps.first()), fps.drop(1).lastOrNull(), devices, null)
     }
@@ -203,8 +207,8 @@ object DeltaOta {
         zip.getEntry(LEGACY)?.takeIf { zip.getEntry(SCRIPT) == null }?.let { le ->
             return legacyMetadata(zip.getInputStream(le).use { it.readBytes() }.toString(Charsets.UTF_8))
         }
-        val e = zip.getEntry(METADATA) ?: throw OtaException("not an OTA package (no $METADATA)")
-        if (zip.getEntry(SCRIPT) == null) throw OtaException("not an OTA package (no updater-script)")
+        val e = zip.getEntry(METADATA) ?: throw OtaException("not an OTA package (no $METADATA)", R.string.ota_not_an_ota_package_no, METADATA)
+        if (zip.getEntry(SCRIPT) == null) throw OtaException("not an OTA package (no updater-script)", R.string.ota_not_an_ota_package_no_updater)
         val kv = LinkedHashMap<String, String>()
         for (line in zip.getInputStream(e).use { it.readBytes() }.toString(Charsets.UTF_8).lineSequence()) {
             val i = line.indexOf('=')
@@ -253,26 +257,28 @@ object DeltaOta {
         val fingerprint = props["ro.build.fingerprint"]?.trim()?.takeIf { it.isNotEmpty() }
         val thumbprint = props["ro.build.thumbprint"]?.trim()?.takeIf { it.isNotEmpty() }
         val cur = fingerprint ?: thumbprint
-            ?: throw OtaException("this system's build.prop has neither ro.build.fingerprint nor ro.build.thumbprint")
+            ?: throw OtaException("this system's build.prop has neither ro.build.fingerprint nor ro.build.thumbprint", R.string.ota_this_system_s_build_prop_has)
         if (fingerprint == null && parseBuild(cur) == null)
-            throw OtaException("this system's ro.build.thumbprint is not in the expected form: $cur")
-        if (m.preBuild.isEmpty()) throw OtaException("this is not a delta OTA (its metadata has no pre-build)")
+            throw OtaException("this system's ro.build.thumbprint is not in the expected form: $cur", R.string.ota_this_system_s_ro_build_thumbprint, cur)
+        if (m.preBuild.isEmpty()) throw OtaException("this is not a delta OTA (its metadata has no pre-build)", R.string.ota_this_is_not_a_delta_ota)
         val device = props["ro.product.device"].orEmpty()
         // without a fingerprint the device is the one thing still known to be checkable, so it is checked when present
         if (m.preDevice.isNotEmpty() && (fingerprint != null || device.isNotEmpty())) {
             if (device !in m.preDevice)
-                throw OtaException("this OTA is for device ${m.preDevice.joinToString("/")}, this system is \"$device\"")
+                throw OtaException("this OTA is for device ${m.preDevice.joinToString("/")}, this system is \"$device\"", R.string.ota_this_ota_is_for_device_this, m.preDevice.joinToString("/"), device)
         }
         if (m.postBuild != null && matchBuild(cur, m.postBuild) != Match.NONE)
-            throw OtaException("this system is already at the build this OTA updates to")
+            throw OtaException("this system is already at the build this OTA updates to", R.string.ota_this_system_is_already_at_the)
         val matches = m.preBuild.map { matchBuild(cur, it) }
         if (matches.all { it == Match.NONE }) {
-            val kind = if (fingerprint == null) "thumbprint " else ""
-            throw OtaException("this OTA updates ${m.preBuild.joinToString(" or ")}, but this system is $kind$cur")
+            val pre = m.preBuild.joinToString(" or ")
+            if (fingerprint == null)
+                throw OtaException("this OTA updates $pre, but this system is thumbprint $cur", R.string.ota_updates_but_thumbprint, m.preBuild.joinToString(" / "), cur)
+            throw OtaException("this OTA updates $pre, but this system is $cur", R.string.ota_updates_but_system, m.preBuild.joinToString(" / "), cur)
         }
         val built = props["ro.build.date.utc"]?.toLongOrNull()
         if (built != null && m.postTimestamp != null && built > m.postTimestamp)
-            throw OtaException("this OTA is older than the installed system (downgrade)")
+            throw OtaException("this OTA is older than the installed system (downgrade)", R.string.ota_this_ota_is_older_than_the)
         return Verified(cur, matches.none { it == Match.EXACT })
     }
 
@@ -302,7 +308,7 @@ object DeltaOta {
         val rangeChecks: List<RangeCheck>,
         /** patches of partitions other than "boot" (partition name, step) */
         val others: List<Pair<String, PatchStep>>,
-        val notes: List<String>,
+        val notes: List<Msg>,
         /** zip entry of a complete boot image (legacy write_raw_image) */
         val bootFull: String? = null,
         /** rename(from, to), in script order */
@@ -384,7 +390,7 @@ object DeltaOta {
     private fun octal(s: String?): Int? = s?.toIntOrNull(8)
 
     private fun parsePlan(zip: ZipFile): Plan {
-        val raw = scriptText(zip) ?: throw OtaException("not an OTA package (no updater-script)")
+        val raw = scriptText(zip) ?: throw OtaException("not an OTA package (no updater-script)", R.string.ota_not_an_ota_package_no_updater)
         val stripped = raw.replace(Regex("(?m)^\\s*#.*$"), "").replace(SHA_GUARD, "")
         val gate = findGate(stripped)
         val afterGate = if (gate != null) stripped.removeRange(gate.range) else stripped
@@ -396,16 +402,16 @@ object DeltaOta {
         val bare = text.replace(Regex(Q), "\"\"")
 
         val unknown = CALL.findAll(bare).map { it.groupValues[1] }.filter { it !in HANDLED && it !in IGNORED }.toSortedSet()
-        if (unknown.isNotEmpty()) throw OtaException("the updater-script uses commands this app cannot run: ${unknown.joinToString(", ")}")
+        if (unknown.isNotEmpty()) throw OtaException("the updater-script uses commands this app cannot run: ${unknown.joinToString(", ")}", R.string.ota_the_updater_script_uses_commands_this, unknown.joinToString(", "))
 
         val steps = ArrayList<PatchStep>()
         val others = ArrayList<Pair<String, PatchStep>>()
         var boot: PatchStep? = null
-        val notes = ArrayList<String>()
-        if (text.contains("huawei_bootloader_update")) notes.add("the bootloader / modem images of this OTA are not part of a VM and were skipped")
-        if (bootloaders > 0 || stagedBootloaders > 0) notes.add("the bootloader images (sbl1, tz, rpm, aboot...) are not part of a VM and were skipped")
+        val notes = ArrayList<Msg>()
+        if (text.contains("huawei_bootloader_update")) notes.add(Msg("the bootloader / modem images of this OTA are not part of a VM and were skipped", R.string.ota_the_bootloader_modem_images_of_this))
+        if (bootloaders > 0 || stagedBootloaders > 0) notes.add(Msg("the bootloader images (sbl1, tz, rpm, aboot...) are not part of a VM and were skipped", R.string.ota_the_bootloader_images_sbl_tz_rpm))
         val matches = APPLY.findAll(text).toList()
-        if (matches.size != APPLY_ANY.findAll(text).count()) throw OtaException("the updater-script has apply_patch calls this app cannot read")
+        if (matches.size != APPLY_ANY.findAll(text).count()) throw OtaException("the updater-script has apply_patch calls this app cannot read", R.string.ota_the_updater_script_has_apply_patch)
         for (m in matches) {
             val g = m.groupValues
             val step = PatchStep(g[1], g[2].lowercase(), g[3].toLong(), g[4].lowercase(), g[5])
@@ -416,7 +422,7 @@ object DeltaOta {
                     val part = step.path.split(':').getOrNull(1)?.substringAfterLast('/')
                     if (part == "boot") boot = step else others.add((part ?: "?") to step)
                 }
-                else -> throw OtaException("unsupported patch target ${step.path}")
+                else -> throw OtaException("unsupported patch target ${step.path}", R.string.ota_unsupported_patch_target, step.path)
             }
         }
 
@@ -444,7 +450,7 @@ object DeltaOta {
         val verifies = ArrayList<Verify>()
         val vm = VERIFY.findAll(text).toList()
         if (vm.size != SHA1_ANY.findAll(text).count() || vm.size != READ_ANY.findAll(text).count())
-            throw OtaException("the updater-script uses read_file / sha1_check in a way this app cannot read")
+            throw OtaException("the updater-script uses read_file / sha1_check in a way this app cannot read", R.string.ota_the_updater_script_uses_read_file)
         for (m in vm) {
             val shas = SHA1_HEX.findAll(m.groupValues[2]).map { it.value.lowercase() }.toSet()
             val p = m.groupValues[1]
@@ -452,7 +458,7 @@ object DeltaOta {
                 p.startsWith("EMMC:") || p.startsWith("MTD:") -> {
                     val part = p.split(':').getOrNull(1)?.substringAfterLast('/')
                     // the boot image is already checked against the SHA-1 of its patch result
-                    if (part != "boot") notes.add("partition \"$part\" is not part of a VM and was not verified")
+                    if (part != "boot") notes.add(Msg("partition \"$part\" is not part of a VM and was not verified", R.string.ota_partition_is_not_part_of_a, part))
                 }
                 p.startsWith("SYSTEM:") -> verifies.add(Verify("/system/" + p.removePrefix("SYSTEM:").trimStart('/'), shas))
                 p.startsWith("/") -> verifies.add(Verify(p, shas))
@@ -462,13 +468,13 @@ object DeltaOta {
 
         // block_image_update and the range_sha1 checks around it
         val bm = BLOCK_UPDATE.findAll(text).toList()
-        if (bm.size != BLOCK_ANY.findAll(text).count()) throw OtaException("the updater-script has block_image_update calls this app cannot read")
-        if (bm.size > 1) throw OtaException("the updater-script updates more than one partition image, which this app cannot do")
+        if (bm.size != BLOCK_ANY.findAll(text).count()) throw OtaException("the updater-script has block_image_update calls this app cannot read", R.string.ota_the_updater_script_has_block_image)
+        if (bm.size > 1) throw OtaException("the updater-script updates more than one partition image, which this app cannot do", R.string.ota_the_updater_script_updates_more_than)
         val block = bm.firstOrNull()?.let { BlockStep(it.groupValues[1], it.groupValues[2], it.groupValues[3], it.groupValues[4]) }
         val blockAt = bm.firstOrNull()?.range?.first ?: -1
         val rm = RANGE_CHECK.findAll(text).toList()
-        if (rm.size != RANGE_ANY.findAll(text).count()) throw OtaException("the updater-script uses range_sha1 in a way this app cannot read")
-        if (rm.isNotEmpty() && block == null) throw OtaException("the updater-script checks block ranges but does not update them")
+        if (rm.size != RANGE_ANY.findAll(text).count()) throw OtaException("the updater-script uses range_sha1 in a way this app cannot read", R.string.ota_the_updater_script_uses_range_sha)
+        if (rm.isNotEmpty() && block == null) throw OtaException("the updater-script checks block ranges but does not update them", R.string.ota_the_updater_script_checks_block_ranges)
         val rangeChecks = listOfNotNull(gate?.check) + rm.map { RangeCheck(it.groupValues[1], it.groupValues[2], it.groupValues[3].lowercase(), it.range.first > blockAt) }
         val bootFull = statements(text, "boot_image").firstOrNull()?.firstOrNull()
         return Plan(steps, boot, deletes, extracts, links, rules, verifies, block, rangeChecks, others, notes, bootFull, renames)
@@ -490,21 +496,21 @@ object DeltaOta {
     private fun findGate(text: String): Gate? {
         val ms = GATE.findAll(text).toList()
         if (ms.isEmpty()) return null
-        if (ms.size > 1) throw OtaException("the updater-script verifies the system image more than once, which this app cannot read")
+        if (ms.size > 1) throw OtaException("the updater-script verifies the system image more than once, which this app cannot read", R.string.ota_the_updater_script_verifies_the_system)
         val m = ms[0]
-        val upd = BLOCK_UPDATE.find(text) ?: throw OtaException("the updater-script verifies a partition image it never updates")
-        if (m.range.last > upd.range.first) throw OtaException("the updater-script verifies the partition image after updating it")
+        val upd = BLOCK_UPDATE.find(text) ?: throw OtaException("the updater-script verifies a partition image it never updates", R.string.ota_the_updater_script_verifies_a_partition)
+        if (m.range.last > upd.range.first) throw OtaException("the updater-script verifies the partition image after updating it", R.string.ota_the_updater_script_verifies_the_partition)
         val g = m.groupValues
         val rc = RANGE_CHECK.find(g[1])
         val v1 = BLOCK_VERIFY.find(g[2])
         val rec = BLOCK_RECOVER.find(g[5])
         val v2 = BLOCK_VERIFY.find(g[6])
-        if (rc == null || v1 == null || rec == null || v2 == null) throw OtaException("the updater-script verifies the system image in a way this app cannot read")
+        if (rc == null || v1 == null || rec == null || v2 == null) throw OtaException("the updater-script verifies the system image in a way this app cannot read", R.string.ota_the_updater_script_verifies_the_system_2)
         val want = upd.groupValues.drop(1) // device, transfer list, new data, patch data
         if (v1.groupValues.drop(1) != want || v2.groupValues.drop(1) != want || rc.groupValues[1] != want[0] || rec.groupValues[1] != want[0])
-            throw OtaException("the updater-script verifies something other than the partition image it updates")
+            throw OtaException("the updater-script verifies something other than the partition image it updates", R.string.ota_the_updater_script_verifies_something_other)
         if (!BlockOta.ranges(rc.groupValues[2]).contentEquals(BlockOta.ranges(rec.groupValues[2])))
-            throw OtaException("the updater-script recovers other blocks than it checks")
+            throw OtaException("the updater-script recovers other blocks than it checks", R.string.ota_the_updater_script_recovers_other_blocks)
         val msg = g[7].trim().removeSurrounding("\"").replace("\\\"", "\"")
         return Gate(m.range, RangeCheck(rc.groupValues[1], rc.groupValues[2], rc.groupValues[3].lowercase(), false, msg))
     }
@@ -533,11 +539,11 @@ object DeltaOta {
     private fun guestFile(paths: VmPaths, p: String): File {
         val parts = p.split('/').filter { it.isNotEmpty() }
         if (!p.startsWith("/") || parts.isEmpty() || parts.any { it == ".." || it == "." || it.contains('\u0000') })
-            throw OtaException("unsafe path in the OTA: $p")
+            throw OtaException("unsafe path in the OTA: $p", R.string.ota_unsafe_path_in_the_ota, p)
         val f = File(paths.root, parts.joinToString("/"))
         val parent = f.parentFile!!
         if (parent.exists() && !parent.canonicalFile.toPath().startsWith(paths.root.canonicalFile.toPath()))
-            throw OtaException("path leaves the VM: $p")
+            throw OtaException("path leaves the VM: $p", R.string.ota_path_leaves_the_vm, p)
         return f
     }
 
@@ -798,8 +804,8 @@ object DeltaOta {
     }
 
     private fun readEntry(zip: ZipFile, name: String): ByteArray {
-        val e = zip.getEntry(name) ?: throw OtaException("the OTA zip lacks $name")
-        if (e.size > (1L shl 30)) throw OtaException("$name is too large")
+        val e = zip.getEntry(name) ?: throw OtaException("the OTA zip lacks $name", R.string.ota_the_ota_zip_lacks, name)
+        if (e.size > (1L shl 30)) throw OtaException("$name is too large", R.string.ota_is_too_large, name)
         return zip.getInputStream(e).use { it.readBytes() }
     }
 
@@ -807,11 +813,11 @@ object DeltaOta {
         val out = try {
             ImgPatch.apply(old, patch)
         } catch (e: OutOfMemoryError) {
-            throw OtaException("not enough memory to patch $what")
+            throw OtaException("not enough memory to patch $what", R.string.ota_not_enough_memory_to_patch, what)
         } catch (e: Exception) {
-            throw OtaException("$what: ${e.message ?: e.javaClass.simpleName}")
+            throw OtaException("$what: ${e.message ?: e.javaClass.simpleName}", R.string.ota_detail_with_name, what, e.message ?: e.javaClass.simpleName)
         }
-        if (out.size.toLong() != size || sha1(out) != sha) throw OtaException("$what: the patch did not produce the expected file")
+        if (out.size.toLong() != size || sha1(out) != sha) throw OtaException("$what: the patch did not produce the expected file", R.string.ota_the_patch_did_not_produce_the, what)
         return out
     }
 
@@ -866,9 +872,10 @@ object DeltaOta {
 
     private fun checkRange(image: File, c: RangeCheck) {
         if (BlockOta.rangeSha1(image, BlockOta.ranges(c.ranges)) == c.sha) return
-        throw OtaException(
-            if (c.after) "the updated system image does not have the contents this OTA promises (blocks ${c.ranges}). Nothing was changed."
-            else "the system image of this VM is not the one this OTA was made for (blocks ${c.ranges} differ). Nothing was changed.")
+        if (c.after) throw OtaException("the updated system image does not have the contents this OTA promises (blocks ${c.ranges}). Nothing was changed.",
+            R.string.ota_updated_image_contents_differ, c.ranges)
+        throw OtaException("the system image of this VM is not the one this OTA was made for (blocks ${c.ranges} differ). Nothing was changed.",
+            R.string.ota_image_blocks_differ, c.ranges)
     }
 
     /**
@@ -876,23 +883,27 @@ object DeltaOta {
      * falls back to the block-by-block check of the transfer list when its hash differs; if that fails too, the script
      * would try block_image_recover, which a VM cannot do, and ends in its abort.
      */
-    private fun preChecks(zip: ZipFile, step: BlockStep, prog: BlockOta.Program, plan: Plan, image: File, staging: File, progress: (String) -> Unit,
+    private fun preChecks(zip: ZipFile, step: BlockStep, prog: BlockOta.Program, plan: Plan, image: File, staging: File, progress: (Msg) -> Unit,
                           modified: List<String> = emptyList()) {
         val why = if (modified.isEmpty()) "" else " ${modified.size} files of /system were changed by the app or by you and cannot be rebuilt, e.g. ${modified.take(4).joinToString(", ")}; the OTA reads them."
+        val modifiedList = modified.take(4).joinToString(", ")
         for (c in plan.rangeChecks) {
             if (c.after) continue
             if (c.orVerify == null) {
                 if (modified.isNotEmpty() && BlockOta.rangeSha1(image, BlockOta.ranges(c.ranges)) != c.sha)
-                    throw OtaException("the system image of this VM is not the one this OTA was made for." + why + " Nothing was changed.")
+                    throw OtaException("the system image of this VM is not the one this OTA was made for." + why + " Nothing was changed.",
+                        R.string.ota_image_differs_modified, modified.size, modifiedList)
                 checkRange(image, c); continue
             }
             if (BlockOta.rangeSha1(image, BlockOta.ranges(c.ranges)) == c.sha) continue
-            progress("Checking the system image block by block")
+            progress(Msg("Checking the system image block by block", R.string.ota_checking_the_system_image_block_by))
             try {
                 BlockOta.verify(image, prog, zip.getEntry(step.patchData)?.size?.coerceAtLeast(0) ?: 0L, staging, progress)
             } catch (e: OtaException) {
-                throw OtaException("the system image of this VM is not the one this OTA was made for (${e.message}). " +
-                    "The OTA would try to recover it, which a VM cannot do, and stop with \"${c.orVerify}\"." + why + " Nothing was changed.")
+                val recovery = "the system image of this VM is not the one this OTA was made for (${e.message}). " +
+                    "The OTA would try to recover it, which a VM cannot do, and stop with \"${c.orVerify}\"." + why + " Nothing was changed."
+                if (modified.isEmpty()) throw OtaException(recovery, R.string.ota_image_differs_recover, e.message, c.orVerify)
+                throw OtaException(recovery, R.string.ota_image_differs_recover_modified, e.message, c.orVerify, modified.size, modifiedList)
             }
         }
     }
@@ -901,7 +912,7 @@ object DeltaOta {
      * Everything of a block-based OTA that can be done without touching the VM: rebuilds the stock image, checks it,
      * runs the transfer list on it, and works out which files, links and folders of the tree have to change.
      */
-    private fun blockUpdate(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (String) -> Unit): BlockSync =
+    private fun blockUpdate(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (Msg) -> Unit): BlockSync =
         when {
             SystemLayout.file(paths.dir).isFile -> blockUpdateExt4(paths, zip, plan, staging, progress)
             StockImage.file(paths.dir).isFile -> blockUpdateSquash(paths, zip, plan, staging, progress)
@@ -909,7 +920,7 @@ object DeltaOta {
         }
 
     /** Runs the transfer list of [step] on [image] in place. */
-    private fun runTransfer(zip: ZipFile, step: BlockStep, prog: BlockOta.Program, image: File, staging: File, progress: (String) -> Unit) {
+    private fun runTransfer(zip: ZipFile, step: BlockStep, prog: BlockOta.Program, image: File, staging: File, progress: (Msg) -> Unit) {
         val patchEntry = zip.getEntry(step.patchData)
         val patchFile = File(staging, "patch.dat")
         if (patchEntry != null) zip.getInputStream(patchEntry).use { i -> patchFile.outputStream().use { o -> i.copyTo(o, 1 shl 16) } }
@@ -934,7 +945,7 @@ object DeltaOta {
         }
         FileChannel.open(image.toPath(), StandardOpenOption.READ).use { ch ->
             val src = ChannelSource(ch)
-            if (!Ext4Reader.probe(src)) throw OtaException("the rebuilt system image is not an ext4 filesystem. Nothing was changed.")
+            if (!Ext4Reader.probe(src)) throw OtaException("the rebuilt system image is not an ext4 filesystem. Nothing was changed.", R.string.ota_the_rebuilt_system_image_is_not)
             val fs = Ext4Reader(src)
             fs.walk { path, node ->
                 if (node.isFile && path in paths) {
@@ -947,23 +958,23 @@ object DeltaOta {
         return out
     }
 
-    private fun blockUpdateExt4(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (String) -> Unit): BlockSync {
-        val step = plan.block ?: throw OtaException("this OTA has no block update")
+    private fun blockUpdateExt4(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (Msg) -> Unit): BlockSync {
+        val step = plan.block ?: throw OtaException("this OTA has no block update", R.string.ota_this_ota_has_no_block_update)
         val lf = SystemLayout.file(paths.dir)
         if (!lf.isFile) throw OtaException(NO_LAYOUT)
         val old = try {
             SystemLayout.load(lf)
         } catch (e: IOException) {
-            throw OtaException("the system layout recorded for this VM cannot be read (${e.message}). Import the stock firmware again.")
+            throw OtaException("the system layout recorded for this VM cannot be read (${e.message}). Import the stock firmware again.", R.string.ota_the_system_layout_recorded_for_this, e.message)
         }
         val prog = BlockOta.parse(readEntry(zip, step.transfer).toString(Charsets.UTF_8))
         val patchEntry = zip.getEntry(step.patchData)
         val need = 3L * maxOf(old.blockCount, BlockOta.imageBlocks(prog)) * BlockOta.BLOCK + (patchEntry?.size?.coerceAtLeast(0) ?: 0L) + (96L shl 20)
-        if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed")
+        if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed", R.string.ota_not_enough_free_space_mb_are, need shr 20)
 
         // ---- the stock image, as the OTA expects it
         val image = File(staging, "system.img")
-        progress("Rebuilding the stock system image")
+        progress(Msg("Rebuilding the stock system image", R.string.ota_rebuilding_the_stock_system_image))
         // A file the app edited (libselinux, egl.cfg, audio_policy.conf, GL / audio / sensor HALs...) has no stock bytes to
         // rebuild from. It is left empty in the image: the OTA only fails if it actually reads such a file (the
         // block-by-block check says so), otherwise the file is simply left as it is in the VM.
@@ -976,7 +987,7 @@ object DeltaOta {
         for (c in plan.rangeChecks) if (c.after) checkRange(image, c)
 
         // ---- what the tree has to do to match the new image
-        progress("Reading the updated system image")
+        progress(Msg("Reading the updated system image", R.string.ota_reading_the_updated_system_image))
         val newLayout = File(staging, SystemLayout.NAME + ".new")
         val staged = ArrayList<Staged>()
         val links = ArrayList<Pair<String, String>>()
@@ -988,7 +999,7 @@ object DeltaOta {
         val kept = ArrayList<String>()
         FileChannel.open(image.toPath(), StandardOpenOption.READ).use { ch ->
             val src = ChannelSource(ch)
-            if (!Ext4Reader.probe(src)) throw OtaException("the updated system image is not an ext4 filesystem. Nothing was changed.")
+            if (!Ext4Reader.probe(src)) throw OtaException("the updated system image is not an ext4 filesystem. Nothing was changed.", R.string.ota_the_updated_system_image_is_not)
             val fs = Ext4Reader(src)
             val cap = SystemLayout.Capture(fs, src)
             fs.walk { path, node ->
@@ -1038,43 +1049,43 @@ object DeltaOta {
      * transfer list is run on the copy, and the files that differ between the kept image and the updated one are
      * what the tree has to change. The updated image replaces the kept one when the swap is made.
      */
-    private fun blockUpdateSquash(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (String) -> Unit): BlockSync {
-        val step = plan.block ?: throw OtaException("this OTA has no block update")
+    private fun blockUpdateSquash(paths: VmPaths, zip: ZipFile, plan: Plan, staging: File, progress: (Msg) -> Unit): BlockSync {
+        val step = plan.block ?: throw OtaException("this OTA has no block update", R.string.ota_this_ota_has_no_block_update)
         val base = StockImage.file(paths.dir)
         if (!base.isFile) throw OtaException(NO_LAYOUT)
-        if (!StockImage.isSquash(base)) throw OtaException("the stock system image kept for this VM is not readable. Import the stock firmware again.")
+        if (!StockImage.isSquash(base)) throw OtaException("the stock system image kept for this VM is not readable. Import the stock firmware again.", R.string.ota_the_stock_system_image_kept_for)
         val prog = BlockOta.parse(readEntry(zip, step.transfer).toString(Charsets.UTF_8))
         val patchEntry = zip.getEntry(step.patchData)
         val need = 3L * maxOf(base.length(), BlockOta.imageBlocks(prog) * BlockOta.BLOCK) + (patchEntry?.size?.coerceAtLeast(0) ?: 0L) + (96L shl 20)
-        if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed")
+        if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed", R.string.ota_not_enough_free_space_mb_are, need shr 20)
 
         // ---- the stock image, as the OTA expects it
         val image = File(staging, "system.img")
-        progress("Copying the stock system image")
+        progress(Msg("Copying the stock system image", R.string.ota_copying_the_stock_system_image))
         base.inputStream().use { i -> image.outputStream().use { o -> i.copyTo(o, 1 shl 20) } }
         preChecks(zip, step, prog, plan, image, staging, progress)
 
         // ---- the transfer list
         runTransfer(zip, step, prog, image, staging, progress)
         for (c in plan.rangeChecks) if (c.after) checkRange(image, c)
-        if (!StockImage.isSquash(image)) throw OtaException("the updated system image is not a SquashFS image, which is all this app can apply on top of a SquashFS system. Nothing was changed.")
+        if (!StockImage.isSquash(image)) throw OtaException("the updated system image is not a SquashFS image, which is all this app can apply on top of a SquashFS system. Nothing was changed.", R.string.ota_the_updated_system_image_is_not_2)
 
         // ---- what the kept image holds
         val oldFiles = HashMap<String, StockImage.Entry>()
         val oldLinks = HashMap<String, String>()
         val oldDirs = HashSet<String>()
         try {
-            progress("Reading the stock system image")
+            progress(Msg("Reading the stock system image", R.string.ota_reading_the_stock_system_image))
             StockImage.scan(base, null, progress,
                 onFile = { path, _, size, sha, _ -> oldFiles[path] = StockImage.Entry(size, sha) },
                 onLink = { path, target -> oldLinks[path] = target },
                 onDir = { path, _ -> oldDirs.add(path) })
         } catch (e: OtaException) { throw e } catch (e: Exception) {
-            throw OtaException("the stock system image kept for this VM cannot be read (${e.message}). Import the stock firmware again.")
+            throw OtaException("the stock system image kept for this VM cannot be read (${e.message}). Import the stock firmware again.", R.string.ota_the_stock_system_image_kept_for_2, e.message)
         }
 
         // ---- what the tree has to do to match the new image
-        progress("Reading the updated system image")
+        progress(Msg("Reading the updated system image", R.string.ota_reading_the_updated_system_image))
         val staged = ArrayList<Staged>()
         val links = ArrayList<Pair<String, String>>()
         val dirs = ArrayList<String>()
@@ -1109,7 +1120,7 @@ object DeltaOta {
                     if (path !in oldDirs) dirs.add("/system/$path")
                 })
         } catch (e: OtaException) { throw e } catch (e: Exception) {
-            throw OtaException("the updated system image cannot be read (${e.message}). Nothing was changed.")
+            throw OtaException("the updated system image cannot be read (${e.message}). Nothing was changed.", R.string.ota_the_updated_system_image_cannot_be, e.message)
         }
         val deletes = ArrayList<Pair<String, Boolean>>()
         // a name that is a folder now must not be left behind as a file or a link
@@ -1122,9 +1133,9 @@ object DeltaOta {
 
     /**
      * Applies [prepared] to VM [id]. The VM must be stopped. Either the whole OTA is applied or the VM is left as it was.
-     * [progress] receives short English status lines.
+     * [progress] receives short status lines (English text plus its string resource).
      */
-    fun install(ctx: Context, id: String, prepared: Prepared, progress: (String) -> Unit = {}): Result {
+    fun install(ctx: Context, id: String, prepared: Prepared, progress: (Msg) -> Unit = {}): Result {
         VmStorageLease(ctx.filesDir).use { lease ->
             lease.acquire()
             GuestStorageWriters.requireIdle(ctx)
@@ -1132,24 +1143,24 @@ object DeltaOta {
         }
     }
 
-    private fun run(ctx: Context, id: String, prep: Prepared, progress: (String) -> Unit): Result {
-        val old = ImageStore.get(ctx, id) ?: throw OtaException("this VM no longer exists")
+    private fun run(ctx: Context, id: String, prep: Prepared, progress: (Msg) -> Unit): Result {
+        val old = ImageStore.get(ctx, id) ?: throw OtaException("this VM no longer exists", R.string.ota_this_vm_no_longer_exists)
         val paths = VmPaths(ctx, id)
         checkTree(paths)
         verifyBuild(readBuildProp(paths), prep.meta)
 
         val staging = File(paths.dir, "ota-staging")
         ImageStore.wipe(staging)
-        if (!staging.mkdirs()) throw OtaException("cannot create a working folder")
+        if (!staging.mkdirs()) throw OtaException("cannot create a working folder", R.string.ota_cannot_create_a_working_folder)
         val backups = File(staging, "old").apply { mkdirs() }
         val txn = Txn(backups)
         var keepStaging = false
-        val notes = ArrayList<String>()
+        val notes = ArrayList<Msg>()
         var patched = 0; var already = 0; var added = 0; var removed = 0; var bootUpdated = false
         var usedBlock = false
         try {
             ZipFile(prep.zip).use { zip ->
-                progress("Reading the OTA")
+                progress(Msg("Reading the OTA", R.string.ota_reading_the_ota))
                 val plan = parsePlan(zip)
                 notes += plan.notes
 
@@ -1158,7 +1169,7 @@ object DeltaOta {
                 val skippedRecovery = ArrayList<String>()
                 val bad = ArrayList<String>()
                 for ((i, s) in plan.steps.withIndex()) {
-                    progress("Verifying files ${i + 1}/${plan.steps.size}")
+                    progress(Msg("Verifying files ${i + 1}/${plan.steps.size}", R.string.ota_verifying_files, i + 1, plan.steps.size))
                     when (val l = locate(paths, s, plan.renames)) {
                         Loc.Done -> already++
                         is Loc.Need -> needs.add(s to l)
@@ -1169,7 +1180,7 @@ object DeltaOta {
                     }
                 }
                 if (skippedRecovery.isNotEmpty())
-                    notes.add("${skippedRecovery.size} recovery files this VM does not have were skipped (${skippedRecovery.joinToString { it.substringAfterLast('/') }})")
+                    notes.add(Msg("${skippedRecovery.size} recovery files this VM does not have were skipped (${skippedRecovery.joinToString { it.substringAfterLast('/') }})", R.string.ota_recovery_files_this_vm_does_not, skippedRecovery.size, skippedRecovery.joinToString { it.substringAfterLast('/') }))
                 val bootFile = File(paths.dir, "boot.img")
                 // block devices are named mmcblk0p9 and the like: then the boot partition is the one whose image this VM keeps
                 val bootGuess = if (plan.boot == null && plan.others.isNotEmpty() && bootFile.isFile) {
@@ -1177,7 +1188,7 @@ object DeltaOta {
                     plan.others.firstOrNull { matchBootImage(bytes, it.second.path, it.second.srcSha, it.second.tgtSha) != null }
                 } else null
                 val bootStep = plan.boot ?: bootGuess?.second
-                for ((part, _) in plan.others) if (bootGuess == null || part != bootGuess.first) notes.add("partition \"$part\" is not part of a VM and was skipped")
+                for ((part, _) in plan.others) if (bootGuess == null || part != bootGuess.first) notes.add(Msg("partition \"$part\" is not part of a VM and was skipped", R.string.ota_partition_is_not_part_of_a_2, part))
                 var bootOld: ByteArray? = null
                 if (bootStep != null) {
                     if (bootFile.isFile) {
@@ -1188,23 +1199,23 @@ object DeltaOta {
                             m.isTarget -> already++
                             else -> bootOld = m.image
                         }
-                    } else notes.add("This VM keeps no boot image, so the boot ramdisk was not updated.")
+                    } else notes.add(Msg("This VM keeps no boot image, so the boot ramdisk was not updated.", R.string.ota_this_vm_keeps_no_boot_image))
                 }
                 var fullBoot: ByteArray? = null
                 if (bootStep == null && plan.bootFull != null) {
                     if (bootFile.isFile) { bootOld = bootFile.readBytes(); fullBoot = readEntry(zip, plan.bootFull) }
-                    else notes.add("This VM keeps no boot image, so the boot ramdisk was not updated.")
+                    else notes.add(Msg("This VM keeps no boot image, so the boot ramdisk was not updated.", R.string.ota_this_vm_keeps_no_boot_image))
                 }
                 if (bad.isNotEmpty()) {
                     throw OtaException("${bad.size} of ${plan.steps.size + (if (bootStep != null) 1 else 0)} files differ from what this OTA " +
-                        "was made for, e.g. ${bad.take(4).joinToString(", ")}. Nothing was changed.")
+                        "was made for, e.g. ${bad.take(4).joinToString(", ")}. Nothing was changed.", R.string.ota_of_files_differ_from_what_this, bad.size, plan.steps.size + (if (bootStep != null) 1 else 0), bad.take(4).joinToString(", "))
                 }
 
                 // ---- room for the new files
                 val prefixes = plan.extracts.filter { it.dir }.map { it.src.trimEnd('/') + "/" }
                 val extractBytes = zip.entries().asSequence().filter { e -> !e.isDirectory && prefixes.any { e.name.startsWith(it) } }.sumOf { it.size.coerceAtLeast(0) }
                 val need = needs.sumOf { it.first.tgtSize } + extractBytes + (bootStep?.tgtSize ?: 0L) + (96L shl 20)
-                if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed")
+                if (paths.dir.usableSpace < need) throw OtaException("not enough free space: ${need shr 20} MB are needed", R.string.ota_not_enough_free_space_mb_are, need shr 20)
 
                 // ---- a block-based OTA: rebuild the stock image, run the transfer list on it, compare the result with the tree
                 val block = if (plan.block != null) blockUpdate(paths, zip, plan, staging, progress) else null
@@ -1214,7 +1225,7 @@ object DeltaOta {
                 val staged = ArrayList<Staged>()
                 for ((i, p) in needs.withIndex()) {
                     val (s, l) = p
-                    progress("Patching ${i + 1}/${needs.size}: ${s.path.substringAfterLast('/')}")
+                    progress(Msg("Patching ${i + 1}/${needs.size}: ${s.path.substringAfterLast('/')}", R.string.ota_patching, i + 1, needs.size, s.path.substringAfterLast('/')))
                     val out = patch(l.fix.revert(l.src.readBytes()), readEntry(zip, s.entry), s.path, s.tgtSha, s.tgtSize)
                     val f = File(staging, "p$i")
                     f.writeBytes(out)
@@ -1225,16 +1236,16 @@ object DeltaOta {
                 var newBoot: Staged? = null
                 val ramdisk = ArrayList<() -> Unit>()
                 if ((bootStep != null || fullBoot != null) && bootOld != null) {
-                    progress("Patching the boot image")
+                    progress(Msg("Patching the boot image", R.string.ota_patching_the_boot_image))
                     val nb = fullBoot ?: patch(bootOld, readEntry(zip, bootStep!!.entry), "boot image", bootStep.tgtSha, bootStep.tgtSize)
                     val f = File(staging, "boot.img")
                     f.writeBytes(nb)
                     newBoot = Staged(f, bootFile, null, false)
                     val oldRd = runCatching { BootPartitionImport.validate(BootImage.ramdisk(bootOld) ?: emptyList()) }.getOrDefault(emptyList())
                     val newRd = try {
-                        BootPartitionImport.validate(BootImage.ramdisk(nb) ?: throw OtaException("the patched boot image has no ramdisk"))
-                    } catch (e: IllegalArgumentException) { throw OtaException("the patched boot ramdisk was rejected: ${e.message}") }
-                    if (newRd.none { it.name == "init.rc" }) throw OtaException("the patched boot ramdisk has no init.rc")
+                        BootPartitionImport.validate(BootImage.ramdisk(nb) ?: throw OtaException("the patched boot image has no ramdisk", R.string.ota_the_patched_boot_image_has_no))
+                    } catch (e: IllegalArgumentException) { throw OtaException("the patched boot ramdisk was rejected: ${e.message}", R.string.ota_the_patched_boot_ramdisk_was_rejected, e.message) }
+                    if (newRd.none { it.name == "init.rc" }) throw OtaException("the patched boot ramdisk has no init.rc", R.string.ota_the_patched_boot_ramdisk_has_no)
                     val oldBy = oldRd.associateBy { it.name.trimEnd('/') }
                     val newBy = newRd.associateBy { it.name.trimEnd('/') }
                     var k = 0
@@ -1281,7 +1292,7 @@ object DeltaOta {
                             fresh.add(Staged(sf, dest, modeFor(plan, guest), dest.canExecute()))
                         }
                     } else {
-                        val e = zip.getEntry(ex.src) ?: throw OtaException("the OTA zip lacks ${ex.src}")
+                        val e = zip.getEntry(ex.src) ?: throw OtaException("the OTA zip lacks ${ex.src}", R.string.ota_the_ota_zip_lacks, ex.src)
                         val sf = File(staging, "x${x++}")
                         zip.getInputStream(e).use { i -> sf.outputStream().use { o -> i.copyTo(o, 1 shl 16) } }
                         val dest = guestFile(paths, ex.dest)
@@ -1310,7 +1321,7 @@ object DeltaOta {
                 }
 
                 // ---- swap in, in the order of the script
-                progress("Applying changes")
+                progress(Msg("Applying changes", R.string.ota_applying_changes))
                 for ((p, recursive) in plan.deletes + (block?.deletes ?: emptyList())) {
                     val f = guestFile(paths, p)
                     val isDir = f.isDirectory && !runCatching { OsConstants.S_ISLNK(Os.lstat(f.path).st_mode) }.getOrDefault(false)
@@ -1328,7 +1339,7 @@ object DeltaOta {
                     patched += block.patched
                     added += block.added
                     if (block.kept.isNotEmpty())
-                        notes.add("${block.kept.size} files that were changed by the app or by you were left as they are (e.g. ${block.kept.take(3).joinToString(", ")}): the OTA does not change them")
+                        notes.add(Msg("${block.kept.size} files that were changed by the app or by you were left as they are (e.g. ${block.kept.take(3).joinToString(", ")}): the OTA does not change them", R.string.ota_files_that_were_changed_by_the, block.kept.size, block.kept.take(3).joinToString(", ")))
                 }
                 for ((target, link) in plan.links + (block?.links ?: emptyList())) {
                     val dest = guestFile(paths, link)
@@ -1340,18 +1351,18 @@ object DeltaOta {
                 // ---- the script's own final check of the result; a mismatch undoes everything
                 val wrong = ArrayList<String>()
                 for ((i, v) in plan.verifies.withIndex()) {
-                    if (i % 8 == 0) progress("Verifying the result ${i + 1}/${plan.verifies.size}")
+                    if (i % 8 == 0) progress(Msg("Verifying the result ${i + 1}/${plan.verifies.size}", R.string.ota_verifying_the_result, i + 1, plan.verifies.size))
                     if (!hashesTo(paths, v.path, v.shas)) wrong.add(v.path)
                 }
                 if (wrong.isNotEmpty())
                     throw OtaException("${wrong.size} of ${plan.verifies.size} files do not have the expected contents after the update, " +
-                        "e.g. ${wrong.take(4).joinToString(", ")}. Nothing was changed.")
+                        "e.g. ${wrong.take(4).joinToString(", ")}. Nothing was changed.", R.string.ota_of_files_do_not_have_the, wrong.size, plan.verifies.size, wrong.take(4).joinToString(", "))
             }
         } catch (t: Throwable) {
             if (txn.rollback() > 0) {
                 keepStaging = true
                 throw OtaException("${t.message ?: t.javaClass.simpleName}; the changes could not be fully undone, " +
-                    "the previous files are kept in ${staging.name} inside the VM folder")
+                    "the previous files are kept in ${staging.name} inside the VM folder", R.string.ota_the_changes_could_not_be_fully, t.message ?: t.javaClass.simpleName, staging.name)
             }
             if (t is OtaException) throw t
             throw OtaException(t.message ?: t.javaClass.simpleName)
@@ -1363,21 +1374,21 @@ object DeltaOta {
         // ---- the files are in place: caches and the image profile follow the new build
         // a file-based OTA changes the tree: the recorded layout of the old image no longer describes it
         if (!usedBlock) runCatching { SystemLayout.file(paths.dir).delete(); StockImage.file(paths.dir).delete() }
-        progress("Updating the VM profile")
+        progress(Msg("Updating the VM profile", R.string.ota_updating_the_vm_profile))
         // personalityNoop() runs once per image; the stock libc and binaries need it again
         File(paths.root, ".aemu-personality").delete()
         runCatching {
             val cache = File(paths.root, "data/dalvik-cache")
             if (cache.isDirectory && !runCatching { OsConstants.S_ISLNK(Os.lstat(cache.path).st_mode) }.getOrDefault(false))
                 cache.listFiles()?.forEach { ImageStore.wipe(it) }
-        }.onFailure { notes.add("could not clear the dalvik cache: ${it.message}") }
+        }.onFailure { notes.add(Msg("could not clear the dalvik cache: ${it.message}", R.string.ota_could_not_clear_the_dalvik_cache, it.message)) }
         runCatching {
             val profile = Analyzer(ctx, paths, null).analyze(id, old.sourceName)
             ImageStore.save(ctx, profile.copy(
                 name = old.name, settings = old.settings, createdAt = old.createdAt, lastBootMs = old.lastBootMs,
                 bootCount = old.bootCount, baseId = old.baseId, sizeBytes = ImageStore.du(paths.dir),
             ))
-        }.onFailure { notes.add("the VM profile could not be refreshed: ${it.message}") }
+        }.onFailure { notes.add(Msg("the VM profile could not be refreshed: ${it.message}", R.string.ota_the_vm_profile_could_not_be, it.message)) }
 
         return Result(prep.fromBuild, prep.toBuild, patched, already, added, removed, bootUpdated, notes)
     }

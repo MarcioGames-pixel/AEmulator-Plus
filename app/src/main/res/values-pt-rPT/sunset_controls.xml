@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Ocultar o botão de menu</string>
+    <string name="vs_hide_menu_sub">Oculta o botão …. O botão Voltar do telefone ou o gesto de voltar abre o menu do emulador em vez de enviar Voltar ao Android. Os botões de navegação do convidado continuam controlando o Android.</string>
+    <string name="vs_vibration">Vibração do convidado</string>
+    <string name="vs_vibration_sub">Encaminha ao telefone a vibração legada do convidado. Vale na próxima inicialização; cada pulso é limitado a 60 segundos.</string>
+    <string name="nav_buttons">Botões de navegação</string>
+    <string name="nav_order">Ordem dos botões (da esquerda para a direita)</string>
+    <string name="nav_earlier">Antes</string>
+    <string name="nav_later">Depois</string>
+    <string name="nav_reset">Redefinir botões</string>
+    <string name="nav_search">Pesquisar</string>
+    <string name="nav_power">Liga/desliga</string>
+    <string name="nav_volume_down">Diminuir volume</string>
+    <string name="nav_volume_up">Aumentar volume</string>
+    <string name="nav_up">D-pad para cima</string>
+    <string name="nav_down">D-pad para baixo</string>
+    <string name="nav_left">D-pad para a esquerda</string>
+    <string name="nav_right">D-pad para a direita</string>
+    <string name="nav_center">D-pad centro</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Deslize no círculo acima da barra de navegação para rolar; toque para selecionar.</string>
+    <string name="nav_dpad_mode">Modo de teclas de seta</string>
+    <string name="nav_dpad_sub">Desativado: eventos relativos reais de trackball para os apps do convidado. Ativado: toques de teclas do D-pad no lugar. Nunca envia os dois.</string>
+    <string name="nav_sensitivity">Sensibilidade: %1$d dp por passo (menor é mais rápido)</string>
+    <string name="nav_trackball_waiting">Ainda não há conexão com o trackball do convidado</string>
+    <string name="nav_trackball_recovery">Recovery: use o modo de teclas de seta</string>
+    <string name="nav_go_to_recovery">Ir para o recovery</string>
+    <string name="vs_bluetooth">Bluetooth do anfitrião (experimental)</string>
+    <string name="vs_bluetooth_sub">Permite que o convidado procure, liste os dispositivos emparelhados e comunique com dispositivos Bluetooth através do telefone: série clássico (RFCOMM) e Bluetooth LE (GATT). Requer a permissão de Bluetooth e um reinício completo da VM. Não é HCI em bruto: o convidado vê o adaptador do telefone através de uma ponte, pelo que os auriculares (perfis de áudio) não são suportados.</string>
+    <string name="bluetooth_permission_denied">Permissão de Bluetooth recusada: o convidado arrancará sem o Bluetooth do anfitrião.</string>
+</resources>

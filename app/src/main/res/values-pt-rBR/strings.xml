@@ -278,6 +278,8 @@
     <string name="vm_export_failed">Falha na exportação. Desligue completamente todas as VMs e verifique o espaço e o acesso ao destino. Se restar um arquivo parcial, exclua-o antes de tentar novamente.</string>
     <string name="vs_motion">Sensores de movimento do host</string>
     <string name="vs_motion_sub">Encaminha os sensores disponíveis de acelerômetro, giroscópio e campo magnético (Android 2.2–7.1). Quando desativado, «Girar tela» simula a gravidade; a rotação automática do convidado deve estar ativada. Experimental; entra em vigor após uma reinicialização completa da VM. Pausado enquanto a tela da VM está oculta.</string>
+    <string name="vs_no_sensors">Desativar todos os sensores</string>
+    <string name="vs_no_sensors_sub">Executa o convidado sem sensores, para firmwares cujo serviço de sensores falha sob emulação. Ativado por padrão em builds Android Wear SDK com API 24+, onde é necessário para iniciar. Vale a partir da próxima inicialização completa.</string>
     <string name="vs_host_resolution">Usar a resolução do host</string>
     <string name="vs_resolution_host">Host</string>
     <string name="vs_host_resolution_sub">Usa o tamanho e a densidade físicos da tela do host após uma reinicialização completa da VM. Os controles do emulador ficam sobre o convidado. A barreira do notch fica nas configurações do app. Resoluções altas exigem mais RAM e tempo de renderização. O mecanismo 2.x legado mantém sua resolução fixa.</string>
@@ -366,4 +368,38 @@
     <string name="th_pick_picture">Imagem de fundo…</string>
     <string name="th_remove_picture">Remover imagem</string>
     <string name="th_corner_note">Com a ponte de GPU ativada, alguns celulares não arredondam os cantos da tela do convidado.</string>
+    <string name="vs_network">Rede informada</string>
+    <string name="vs_network_sub">O que a barra de status mostra: de 2G a LTE. Padrão 2G, pois nem todo firmware lida com 3G ou superior</string>
+    <string name="m_network">Rede</string>
+    <string name="vs_kernel">Versão do kernel</string>
+    <string name="vs_kernel_sub">Exibida em /proc/version e uname -r (ex.: 3.0.31-custom, ou uma linha completa “Linux version …”). Vale na próxima inicialização. Vazio = padrão</string>
+    <string name="vs_baseband">Versão do baseband</string>
+    <string name="vs_baseband_sub">Informada como gsm.version.baseband e pelo modem. Vale na próxima inicialização. Vazio = padrão</string>
+    <string name="vs_strace">Rastrear chamadas de sistema dos serviços</string>
+    <string name="vs_strace_sub">Nomes de serviços separados por vírgulas, ex.: mediaserver,zygote. Deixa esses serviços mais lentos e grava o rastreamento nos logs deles. Vale na próxima inicialização.</string>
+    <string name="vs_wifi">Rede Wi-Fi</string>
+    <string name="vs_wifi_sub">Mostra a internet do host para a VM como uma rede Wi-Fi conectada, em vez de Ethernet. Android 4.0–7.x. Vale na próxima inicialização.</string>
+    <string name="vs_wifi_ssid">Nome da rede (SSID)</string>
+    <string name="vs_wifi_ssid_sub">Até 32 bytes</string>
+    <string name="vs_wifi_ssid_error">O nome da rede não pode ficar vazio</string>
+    <string name="vs_wifi_password">Senha</string>
+    <string name="vs_wifi_password_sub">Deixe vazio para uma rede aberta. WPA2 exige de 8 a 63 caracteres.</string>
+    <string name="vs_wifi_password_error">Use de 8 a 63 caracteres ou deixe vazio para uma rede aberta</string>
+    <string name="vs_wifi_show">Mostrar</string>
+    <string name="vs_wifi_hide">Ocultar</string>
+    <string name="vs_hardware">ro.hardware</string>
+    <string name="vs_hardware_default">Padrão do firmware</string>
+    <string name="vs_hardware_pick">Escolher</string>
+    <string name="vs_hardware_sub">Valor de ro.hardware passado ao convidado na inicialização. O sistema procura as bibliotecas HAL por ele (gralloc.&lt;valor&gt;.so, lights.&lt;valor&gt;.so…); altere somente se souber o que o firmware espera. Vale após reiniciar completamente a VM.</string>
+    <string name="vs_gyro_lock">Travar a orientação do giroscópio</string>
+    <string name="vs_gyro_lock_sub">0° / 180° fixa os sensores de movimento do host em uma orientação fixa: a gravidade permanece constante e o giroscópio marca zero, então o convidado nunca gira automaticamente. “Sem giroscópio” oculta totalmente o giroscópio do convidado (use se ele estiver com problemas); acelerômetro e magnetômetro continuam reais. Vale após reiniciar completamente a VM.</string>
+    <string name="vs_gyro_disabled">Desativado</string>
+    <string name="vs_gyro_0">0°</string>
+    <string name="vs_gyro_180">180°</string>
+    <string name="vs_gyro_none">Sem giroscópio</string>
+    <string name="vm_export_note">Nota de uso único (opcional)</string>
+    <string name="vm_export_note_info">Exibida até o Android inicializar e continuar em execução por 10 segundos.</string>
+    <string name="vm_rom_note">Nota da ROM</string>
+    <string name="vs_host_battery">Usar a bateria do host</string>
+    <string name="vs_host_battery_sub">Replica o nível da bateria e o estado de carregamento do seu dispositivo.</string>
 </resources>

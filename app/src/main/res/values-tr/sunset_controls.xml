@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Hassasiyet: adım başına %1$d dp (düşük değer daha hızlıdır)</string>
     <string name="nav_trackball_waiting">Henüz misafir izleme topu bağlantısı yok</string>
     <string name="nav_trackball_recovery">Recovery: ok tuşu modunu kullanın</string>
+    <string name="nav_go_to_recovery">Recovery\'ye git</string>
+    <string name="vs_bluetooth">Ana makine Bluetooth\'u (deneysel)</string>
+    <string name="vs_bluetooth_sub">Misafirin telefon üzerinden Bluetooth cihazlarını taramasına, eşleşenleri listelemesine ve onlarla iletişim kurmasına izin verir: klasik seri (RFCOMM) ve Bluetooth LE (GATT). Bluetooth izni ve VM\'nin tamamen yeniden başlatılması gerekir. Ham HCI değildir: misafir telefon bağdaştırıcısını bir köprü üzerinden görür, bu nedenle kulaklıklar (ses profilleri) desteklenmez.</string>
+    <string name="bluetooth_permission_denied">Bluetooth izni reddedildi: misafir, ana makine Bluetooth\'u olmadan açılacak.</string>
 </resources>

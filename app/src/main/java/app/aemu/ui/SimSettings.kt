@@ -82,6 +82,7 @@ private fun SimFields(title: String, sim: SimCard, apns: Set<Pair<String, String
 /** Real operators; the ones this firmware has an internet APN for come first, marked with a check. */
 @Composable
 private fun OperatorPicker(sim: SimCard, apns: Set<Pair<String, String>>, pick: (OperatorPreset?) -> Unit) {
+    val ctx = LocalContext.current
     var open by remember { mutableStateOf(false) }
     val current = SimCards.PRESETS.firstOrNull { it.mcc == sim.mcc && it.mnc == sim.mnc }
     val presets = remember(apns) { SimCards.PRESETS.sortedBy { if ((it.mcc to it.mnc) in apns) 0 else 1 } }
@@ -97,7 +98,7 @@ private fun OperatorPicker(sim: SimCard, apns: Set<Pair<String, String>>, pick: 
                     DropdownMenuItem(text = { Text(stringResource(R.string.vs_sim_default)) }, onClick = { open = false; pick(null) })
                     presets.forEach { p ->
                         val ok = (p.mcc to p.mnc) in apns
-                        DropdownMenuItem(text = { Text("${if (ok) "✓ " else ""}${p.country} · ${p.name} (${p.mcc}-${p.mnc})") },
+                        DropdownMenuItem(text = { Text("${if (ok) "✓ " else ""}${SimCards.countryLabel(ctx, p)} · ${p.name} (${p.mcc}-${p.mnc})") },
                             onClick = { open = false; pick(p) })
                     }
                 }

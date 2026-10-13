@@ -9,6 +9,21 @@ package app.aemu.core
  * through heap garbage (SIGSEGV in system_server, right after "nuSensorService starting...").
  */
 object SensorHalApi {
+    /**
+     * Nougat+ Wear SDK (emulator) builds: libgui's Sensor::flatten() writes a 1-byte bool in front of 32-bit fields, so
+     * the following words are stored through an address that is 1 mod 4 and merged into one STM. A real kernel fixes an
+     * unaligned STM up; qemu-user raises SIGBUS. The first GET_SENSOR_LIST call (the Wear ambient app makes it right after
+     * boot completes) killed a system_server binder thread inside libgui, zygote went down with it and the system
+     * restarted in a loop. With no sensors module the list is empty and nothing is flattened, so those builds run
+     * without sensors unless the user turns them back on.
+     */
+    fun crashesWithHostSensors(api: Int, skin: String, brand: String, model: String) =
+        api >= 24 && skin.equals("Wear", true) && brand.equals("generic", true) && model.contains("sdk", true)
+
+    /** The "Disable all sensors" setting: [override] when the user has chosen, otherwise on only for [crashesWithHostSensors] builds. */
+    fun sensorsOff(override: Boolean?, api: Int, skin: String, brand: String, model: String) =
+        override ?: crashesWithHostSensors(api, skin, brand, model)
+
     private fun has(d: ByteArray, s: String): Boolean {
         val n = byteArrayOf(0) + s.toByteArray(Charsets.ISO_8859_1) + byteArrayOf(0)
         outer@ for (i in 0..d.size - n.size) {

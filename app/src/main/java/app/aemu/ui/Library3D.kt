@@ -1,6 +1,7 @@
 /* AEmulator Super Plus, 2026-10-11: 3D firmware library. GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.ui
 
+import app.aemu.core.ImportWarnings
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.hardware.Sensor
@@ -256,7 +257,7 @@ private fun Phone3D(img: GuestImage, width: Dp, thumb: ImageBitmap?, running: Bo
     val turn = ((rotationY % 360f) + 360f) % 360f
     val back = turn in 90f..270f
     val edge = sin(turn * PI.toFloat() / 180f) * 9f
-    val label = "${img.name}, Android ${img.release}"
+    val label = stringResource(R.string.lib3d_card_description, img.name, img.release)
     val flipLabel = stringResource(if (back) R.string.lib3d_show_front else R.string.lib3d_show_back)
     Column(horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.offset(y = lift.dp).semantics { contentDescription = label }) {
@@ -411,10 +412,10 @@ private fun PhoneBack(img: GuestImage, era: Era, width: Dp) {
         Spacer(Modifier.weight(1f))
         Column(Modifier.fillMaxWidth().background(Color(0x22000000), RoundedCornerShape(10.dp)).padding(10.dp)) {
             Spec("Android", "${img.release} · API ${img.api}", accent)
-            Spec("Skin", LibraryLabels.compactSkin(img.skin), accent)
-            Spec("Screen", "${img.settings.width}×${img.settings.height}", accent)
-            Spec("Size", Formatter.formatShortFileSize(ctx, img.sizeBytes), accent)
-            if (img.model.isNotBlank()) Spec("Model", img.model, accent)
+            Spec(stringResource(R.string.lib3d_spec_skin), LibraryLabels.compactSkin(img.skin), accent)
+            Spec(stringResource(R.string.lib3d_spec_screen), "${img.settings.width}×${img.settings.height}", accent)
+            Spec(stringResource(R.string.lib3d_spec_size), Formatter.formatShortFileSize(ctx, img.sizeBytes), accent)
+            if (img.model.isNotBlank()) Spec(stringResource(R.string.lib3d_spec_model), img.model, accent)
         }
     }
 }
@@ -469,7 +470,7 @@ private fun Details(img: GuestImage, active: Boolean, baseName: String?, onStart
         if (img.lastBootMs > 0) Text(stringResource(R.string.last_boot, (img.lastBootMs / 1000).toInt()), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         img.warnings.firstOrNull()?.let {
-            Text("⚠ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Center)
+            Text("⚠ " + ImportWarnings.text(ctx, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Center)
         }
         Text(stringResource(R.string.lib3d_tap_hint), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))

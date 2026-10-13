@@ -521,12 +521,15 @@ class TreeFixer(
                 if (!dest.exists()) check(file.renameTo(dest)) { "Cannot park sensor HAL" } else check(file.delete())
             }
         }
-        if (legacyApi) {
+        if (legacyApi || img.sensorsOff) {
             // This SensorService opens the "control" and "data" HAL devices and never checks the result; the stand-in HAL
             // only has "poll", so both pointers stayed uninitialised and system_server died in SensorDevice::SensorDevice().
+            // Sensors disabled (setting, or automatic on Nougat+ Wear SDK builds, see SensorHalApi): none for the guest.
             // With no module at all it logs "couldn't load sensors module" and runs without sensors.
             for (name in listOf("sensors.aemu_host.so", "sensors.default.so")) File(root, "system/lib/hw/$name").delete()
-            log("motion: this firmware's SensorService needs the control/data sensor HAL, which the engine lacks; guest runs without sensors")
+            log(if (legacyApi) "motion: this firmware's SensorService needs the control/data sensor HAL, which the engine lacks; guest runs without sensors"
+                else if (img.settings.disableSensors == null) "motion: Nougat+ Wear SDK build: libgui's unaligned sensor serialisation crashes under qemu (SIGBUS), guest runs without sensors (Settings > Disable all sensors)"
+                else "motion: all sensors disabled in the settings; guest runs without sensors")
             return
         }
         for (name in listOf("sensors.aemu_host.so", "sensors.default.so")) {
@@ -1272,6 +1275,9 @@ class TreeFixer(
             // returns before setupViews() when that check fails, so onResume then dies on a null mWorkspace
             // (NullPointerException at Launcher.onResume, relaunched forever as the only HOME app)
             "proc/versioncheck" to "",
+            // MediaTek netd opens the relative path "proc/cpuinfo" (GuestVm starts netd inside the guest root);
+            // a missing file made fopen return NULL and netd crashed in feof(NULL) on every start
+            "proc/cpuinfo" to GUEST_CPUINFO,
         )
         // nodes the guest writes to as well as reads
         val writable = setOf("proc/versioncheck")

@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Sensitivitas: %1$d dp per langkah (lebih rendah lebih cepat)</string>
     <string name="nav_trackball_waiting">Belum ada koneksi trackball tamu</string>
     <string name="nav_trackball_recovery">Recovery: gunakan mode tombol panah</string>
+    <string name="nav_go_to_recovery">Buka recovery</string>
+    <string name="vs_bluetooth">Bluetooth host (eksperimental)</string>
+    <string name="vs_bluetooth_sub">Memungkinkan tamu memindai, melihat daftar perangkat yang dipasangkan, dan berkomunikasi dengan perangkat Bluetooth melalui ponsel: serial klasik (RFCOMM) dan Bluetooth LE (GATT). Memerlukan izin Bluetooth dan mulai ulang VM sepenuhnya. Bukan HCI mentah: tamu melihat adaptor ponsel melalui jembatan, sehingga headset (profil audio) tidak didukung.</string>
+    <string name="bluetooth_permission_denied">Izin Bluetooth ditolak: tamu akan boot tanpa Bluetooth host.</string>
 </resources>

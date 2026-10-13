@@ -1,6 +1,7 @@
 /* AEmulator Super Plus, 2026-10-12: VM screen themes. GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.util.AtomicFile
 import android.util.Base64
@@ -88,6 +89,14 @@ object VmThemes {
         VmTheme("lollipop", "Lollipop 5.x", GlyphSet.LOLLIPOP, barColor = 0xFF000000.toInt(), iconColor = 0xFFFFFFFF.toInt(),
             pressColor = 0x40FFFFFF, pressGlow = true, builtIn = true),
     )
+
+    /** Name to show: the two built-in looks that carry the app's own words are translated, everything else is as saved. */
+    fun displayName(ctx: Context, t: VmTheme): String = when {
+        !t.builtIn -> t.name
+        t.id == "original" -> ctx.getString(R.string.theme_original)
+        t.id == "sunset" -> ctx.getString(R.string.theme_sunset)
+        else -> t.name
+    }
 
     fun dir(ctx: Context) = File(ctx.filesDir, "themes").apply { mkdirs() }
     private fun store(ctx: Context) = AtomicFile(File(dir(ctx), FILE))

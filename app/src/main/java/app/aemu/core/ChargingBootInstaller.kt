@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-02. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import app.aemu.importer.BootImage
 import java.io.File
 import java.nio.file.Files
@@ -9,7 +10,7 @@ import java.nio.file.Files
  * No partitions, firmware framework or existing init rules are replaced. */
 internal object ChargingBootInstaller {
     fun install(root: File, bytes: ByteArray): Int {
-        val entries = BootImage.ramdisk(bytes) ?: error("Unrecognized boot image")
+        val entries = BootImage.ramdisk(bytes) ?: localizedError("Unrecognized boot image", R.string.err_unrecognized_boot_image)
         require(!Files.isSymbolicLink(root.toPath()) && root.isDirectory)
         val files = entries.filter { e ->
             val name = e.name.removePrefix("./")

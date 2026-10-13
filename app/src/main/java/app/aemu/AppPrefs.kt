@@ -29,10 +29,17 @@ object AppPrefs {
         "fa" to "فارسی",
         "hi" to "हिन्दी",
         "id" to "Bahasa Indonesia",
+        "ms" to "Bahasa Melayu",
         "vi" to "Tiếng Việt",
+        "th" to "ไทย",
         "zh-CN" to "简体中文",
+        "zh-TW" to "繁體中文",
         "ja" to "日本語",
         "ko" to "한국어",
+        "fil" to "Filipino",
+        "ur" to "اردو",
+        "bn" to "বাংলা",
+        "cs" to "Čeština",
     )
 
     const val THEME_SYSTEM = 0

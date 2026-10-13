@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">মেনু বোতাম লুকান</string>
+    <string name="vs_hide_menu_sub">… বোতামটি লুকান। এর বদলে ফোনের ব্যাক বোতাম বা ব্যাক জেসচার এমুলেটর মেনু খোলে, অ্যান্ড্রয়েডে ব্যাক পাঠায় না। গেস্টের নেভিগেশন বোতামগুলো তবুও অ্যান্ড্রয়েড নিয়ন্ত্রণ করে।</string>
+    <string name="vs_vibration">গেস্টের ভাইব্রেশন</string>
+    <string name="vs_vibration_sub">পুরোনো গেস্ট ভাইব্রেশন ফোনে পাঠান। পরবর্তী বুটে প্রযোজ্য; প্রতিটি স্পন্দন সর্বোচ্চ 60 সেকেন্ডে সীমিত।</string>
+    <string name="nav_buttons">নেভিগেশন বোতাম</string>
+    <string name="nav_order">বোতামের ক্রম (বাঁ থেকে ডানে)</string>
+    <string name="nav_earlier">আগে</string>
+    <string name="nav_later">পরে</string>
+    <string name="nav_reset">বোতাম রিসেট করুন</string>
+    <string name="nav_search">সার্চ</string>
+    <string name="nav_power">পাওয়ার</string>
+    <string name="nav_go_to_recovery">রিকভারিতে যান</string>
+    <string name="nav_volume_down">ভলিউম কমান</string>
+    <string name="nav_volume_up">ভলিউম বাড়ান</string>
+    <string name="nav_up">D-pad ওপর</string>
+    <string name="nav_down">D-pad নিচ</string>
+    <string name="nav_left">D-pad বাঁ</string>
+    <string name="nav_right">D-pad ডান</string>
+    <string name="nav_center">D-pad মাঝ</string>
+    <string name="nav_trackball">ট্র্যাকবল</string>
+    <string name="nav_trackball_sub">ঘোরাতে নেভিগেশন বারের ওপরের বৃত্তে সোয়াইপ করুন; নির্বাচন করতে ট্যাপ করুন।</string>
+    <string name="nav_dpad_mode">অ্যারো-কী মোড</string>
+    <string name="nav_dpad_sub">বন্ধ: গেস্ট অ্যাপের জন্য আসল আপেক্ষিক ট্র্যাকবল ইভেন্ট। চালু: এর বদলে D-pad কী প্রেস। দুটো একসাথে পাঠায় না।</string>
+    <string name="nav_sensitivity">সংবেদনশীলতা: প্রতি ধাপে %1$d dp (কম হলে দ্রুত)</string>
+    <string name="nav_trackball_waiting">গেস্ট ট্র্যাকবলের সংযোগ এখনও নেই</string>
+    <string name="nav_trackball_recovery">রিকভারি: অ্যারো-কী মোড ব্যবহার করুন</string>
+    <string name="vs_bluetooth">হোস্ট ব্লুটুথ (পরীক্ষামূলক)</string>
+    <string name="vs_bluetooth_sub">ফোনের মাধ্যমে গেস্টকে ব্লুটুথ ডিভাইস স্ক্যান, পেয়ার-তালিকা দেখা ও যোগাযোগ করতে দিন: ক্লাসিক সিরিয়াল (RFCOMM) ও Bluetooth LE (GATT)। ব্লুটুথ অনুমতি ও সম্পূর্ণ VM রিস্টার্ট দরকার। কাঁচা HCI নয়: গেস্ট ব্রিজের মাধ্যমে ফোনের অ্যাডাপ্টার দেখে, তাই হেডসেট (অডিও প্রোফাইল) সমর্থিত নয়।</string>
+    <string name="bluetooth_permission_denied">ব্লুটুথের অনুমতি প্রত্যাখ্যাত হয়েছে: গেস্ট হোস্ট ব্লুটুথ ছাড়াই বুট হবে।</string>
+</resources>

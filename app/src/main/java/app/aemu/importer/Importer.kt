@@ -3,10 +3,12 @@
  * GPL-3.0; see LICENSE and NOTICE.md. */
 package app.aemu.importer
 
+import app.aemu.R
 import android.content.Context
 import android.net.Uri
 import android.system.Os
 import app.aemu.core.GuestImage
+import app.aemu.core.LocalizedIOException
 import app.aemu.core.ImageStore
 import app.aemu.core.TreeFixer
 import app.aemu.core.VmPaths
@@ -72,21 +74,24 @@ class Importer(
     /** boot image whose ramdisk is only the recovery ramdisk (A/B devices keep recovery in boot); used only if the system partition is not system-as-root. */
     private var recoveryBoot: ByteArray? = null
     @Volatile var cancelled = false
+    /** Progress text must follow the language picked in the app, which the application context does not know. */
+    private val localized: Context by lazy { app.aemu.AppPrefs.wrap(ctx) }
+    private fun lt(@androidx.annotation.StringRes id: Int, vararg args: Any?): String = localized.getString(id, *args)
 
     fun import(uri: Uri, name: String): GuestImage {
         if (name.endsWith(".aessvm", true)) {
             return app.aemu.core.VmArchiveStorage.restore(ctx, uri) { path ->
                 if (cancelled) throw IOException("cancelled")
-                onProgress("Restoring $path", -1f)
-            }.also { onProgress("Done", 1f) }
+                onProgress(lt(R.string.imp_restoring, path), -1f)
+            }.also { onProgress(lt(R.string.import_ready), 1f) }
         }
         val id = ImageStore.newId(ctx)
         paths = VmPaths(ctx, id)
         root = paths.root
         root.mkdirs()
         try {
-            onProgress("Opening $name", 0f)
-            val pfd = ctx.contentResolver.openFileDescriptor(uri, "r") ?: throw IOException("file failed to open")
+            onProgress(lt(R.string.imp_opening, name), 0f)
+            val pfd = ctx.contentResolver.openFileDescriptor(uri, "r") ?: throw LocalizedIOException("file failed to open", R.string.imp_file_failed_to_open)
             pfd.use {
                 val ch = FileInputStream(pfd.fileDescriptor).channel
                 val seekable = runCatching { ch.position(0); ch.size() > 0 }.getOrDefault(false)
@@ -100,14 +105,14 @@ class Importer(
             useDeferredBoot()
             // build.prop is optional: some dumps/ports lack it, Analyzer infers the version from the tree
             if (!File(root, "system/framework").isDirectory && !File(root, "system/build.prop").isFile)
-                throw IOException("no Android system partition found in file")
+                throw LocalizedIOException("no Android system partition found in file", R.string.imp_no_android_system_partition_found_in)
             finishTree()
             recovery?.let { r -> runCatching { RecoveryImage.install(paths, r, log) }.onFailure { log("recovery: install failed (${it.message}), skipped") } }
-            onProgress("Analyzing firmware", 0.97f)
+            onProgress(lt(R.string.imp_analyzing_firmware), 0.97f)
             val img = Analyzer(ctx, paths, ramdisk).analyze(id, name)
             TreeFixer(ctx, paths, img, log).sanitize()
             ImageStore.save(ctx, img.copy(sizeBytes = ImageStore.du(paths.dir)))
-            onProgress("Done", 1f)
+            onProgress(lt(R.string.import_ready), 1f)
             log("import: $files files, ${bytes shr 20} MB")
             return ImageStore.get(ctx, id)!!
         } catch (t: Throwable) {
@@ -125,14 +130,14 @@ class Importer(
         val head = ByteBuffer.allocate(1100)
         src.read(0, head); head.flip()
         val h = ByteArray(head.remaining()).also { head.get(it) }
-        if (h.size < 2) throw IOException("empty or truncated firmware file")
+        if (h.size < 2) throw LocalizedIOException("empty or truncated firmware file", R.string.imp_empty_or_truncated_firmware_file)
         when {
             name.endsWith(".ofp", true) && h.size > 4 && h[0] == 'P'.code.toByte() && h[1] == 'K'.code.toByte() && h[2].toInt() == 3 && h[3].toInt() == 4 -> {
                 val source = spill(streamOf(src), name)
                 val toolWork = File(tmp, "tool-${System.nanoTime()}").apply { mkdirs() }
                 try {
                     val artifacts = FirmwareToolset.extract(source, toolWork) { msg -> log(msg) }
-                    if (artifacts.isEmpty()) throw IOException("OFP ZIP produced no files")
+                    if (artifacts.isEmpty()) throw LocalizedIOException("OFP ZIP produced no files", R.string.imp_ofp_zip_produced_no_files)
                     for (artifact in artifacts) {
                         if (!artifact.file.isFile) continue
                         FileChannel.open(artifact.file.toPath(), StandardOpenOption.READ).use { c ->
@@ -146,10 +151,10 @@ class Importer(
             name.endsWith(".sin", true) || (h.size > 4 && h[0].toInt() == 3 && String(h, 1, 3, Charsets.ISO_8859_1) == "SIN") ->
                 importSin(src, name)
             h.size > 4 && h[0] == 'P'.code.toByte() && h[1] == 'K'.code.toByte() && h[2].toInt() == 3 && h[3].toInt() == 4 -> {
-                if (ch != null) importZip(ch, name, depth) else throw IOException("zip without random access")
+                if (ch != null) importZip(ch, name, depth) else throw LocalizedIOException("zip without random access", R.string.imp_zip_without_random_access)
             }
             h.size > 6 && h[0] == '7'.code.toByte() && h[1] == 'z'.code.toByte() && h[2] == 0xBC.toByte() && h[3] == 0xAF.toByte() -> {
-                if (ch != null) importSevenZ(ch, name, depth) else throw IOException("7z without random access")
+                if (ch != null) importSevenZ(ch, name, depth) else throw LocalizedIOException("7z without random access", R.string.imp_z_without_random_access)
             }
             h.size >= 7 && h[0] == 'R'.code.toByte() && h[1] == 'a'.code.toByte() &&
                 h[2] == 'r'.code.toByte() && h[3] == '!'.code.toByte() && h[4] == 0x1a.toByte() -> {
@@ -224,7 +229,7 @@ class Importer(
                 // *.bin is only a name guess ("allow-mbmloader-flashing-mbm.bin" of a Motorola package is a bootloader, not
                 // an LG container): inside an archive that is no reason to abort the whole import
                 if (depth > 0 && name.endsWith(".bin", true)) { log("skipped $name: not a firmware container"); return }
-                throw IOException("unknown file format \"$name\"")
+                throw LocalizedIOException("unknown file format \"$name\"", R.string.imp_unknown_file_format, name)
             }
             // the unpacked copy is all that is needed from here on (unless an artifact IS the spilled file)
             if (artifacts.none { it.file == source }) source.delete()
@@ -287,7 +292,7 @@ class Importer(
             .replace(Regex("(?i)\\.(gz|xz|bz2)$"), "").ifEmpty { "payload" }
         val f = decoded.use { spill(it, inner) }
         try {
-            if (f.length() < 2) throw IOException("compressed file is empty: $name")
+            if (f.length() < 2) throw LocalizedIOException("compressed file is empty: $name", R.string.imp_compressed_file_is_empty, name)
             FileChannel.open(f.toPath(), StandardOpenOption.READ).use { c -> handle(ChannelSource(c), c, inner, depth + 1) }
         } finally { deleteTree(f.parentFile ?: f) }
     }
@@ -383,7 +388,7 @@ class Importer(
             runCatching { zip.getRawInputStream(e).close() } // computes dataOffset
             if (e.dataOffset > 0) { importAcerBin(ChannelSource(ch, e.dataOffset, e.size), base, strict = false); return }
         }
-        onProgress("Unpacking $base", -1f)
+        onProgress(lt(R.string.imp_unpacking, base), -1f)
         val t = spillEntry(zip, e)
         try {
             FileChannel.open(t.toPath(), StandardOpenOption.READ).use { c -> importAcerBin(ChannelSource(c), base, strict = false) }
@@ -441,7 +446,7 @@ class Importer(
         }
         if (systemEntry == null || gotSystem) {
             val what = if (gotSystem) "system already imported" else "no system partition"
-            if (strict && !gotSystem) throw IOException("\"$label\" has no system partition (not a full Acer firmware package?)")
+            if (strict && !gotSystem) throw LocalizedIOException("\"$label\" has no system partition (not a full Acer firmware package?)", R.string.imp_has_no_system_partition_not_a, label)
             log("acer $label: $what")
             return
         }
@@ -474,7 +479,7 @@ class Importer(
                         val bytes = java.io.ByteArrayOutputStream(node.size.toInt().coerceAtLeast(16))
                         fs.copy(node, bytes)
                         total += bytes.size()
-                        if (total > MAX_RAMDISK) throw IOException("ramdisk too large")
+                        if (total > MAX_RAMDISK) throw LocalizedIOException("ramdisk too large", R.string.imp_ramdisk_too_large)
                         out.add(BootImage.CpioEntry(path, 0x8000 or (fs.fileMode(node) and 0xfff), bytes.toByteArray()))
                     }
                     else -> {} // device nodes: the guest creates /dev itself
@@ -501,7 +506,7 @@ class Importer(
         val label = name.replace('\\', '/').substringAfterLast('/')
         val packets = HuaweiApp.packets(src)
         if (packets.isEmpty()) {
-            if (strict) throw IOException("not a Huawei update package: $label")
+            if (strict) throw LocalizedIOException("not a Huawei update package: $label", R.string.imp_not_a_huawei_update_package, label)
             log("skipped $label: not a Huawei update package"); return
         }
         log("huawei $label: ${packets.size} packets, hardware ${packets[0].hardware.ifEmpty { "?" }}, built ${packets[0].date}")
@@ -532,11 +537,11 @@ class Importer(
             ?: fsParts.firstOrNull { looksLikeSystem(slice(it)) }
         if (systemPacket == null || gotSystem) {
             val what = if (gotSystem) "system already imported" else "no system partition"
-            if (strict && !gotSystem) throw IOException("\"$label\" has no system partition (customization-only package?); import UPDATE.APP instead")
+            if (strict && !gotSystem) throw LocalizedIOException("\"$label\" has no system partition (customization-only package?); import UPDATE.APP instead", R.string.imp_has_no_system_partition_customization_only, label)
             log("huawei $label: $what; skipped ${fsParts.size} other partition(s)")
             return
         }
-        onProgress("Verifying $label", -1f)
+        onProgress(lt(R.string.imp_verifying, label), -1f)
         val bad = HuaweiApp.verify(src, systemPacket) { if (cancelled) throw IOException("cancelled") }
         if (bad > 0) log("huawei $label: $bad block(s) of the system image fail their CRC, the download may be damaged")
         val s = slice(systemPacket)
@@ -709,7 +714,7 @@ class Importer(
                 }
             }
             done += maxOf(0L, e.size)
-            onProgress("Extracting: $base", 0.9f * done / total)
+            onProgress(lt(R.string.imp_extracting, base), 0.9f * done / total)
         }
         for ((_, be) in bootEntries.sortedBy { it.first.count { c -> c == '/' } }) {
             if (ramdisk != null) break
@@ -727,11 +732,11 @@ class Importer(
                     it.name.substringAfterLast('/').equals("$partition.transfer.list", true)
             }
             if (listE == null) {
-                if (partition == "system") throw IOException("$partition.transfer.list missing")
+                if (partition == "system") throw LocalizedIOException("$partition.transfer.list missing", R.string.imp_transfer_list_missing, partition)
                 log("vendor.transfer.list missing, skipping vendor.new.dat"); continue
             }
             val list = zip.getInputStream(listE).use { String(it.readBytes(), Charsets.UTF_8) }
-            onProgress("Building $partition.img from OTA", 0.5f)
+            onProgress(lt(R.string.imp_building_img_from_ota, partition), 0.5f)
             val raw = File(tmp, "$partition.raw")
             try {
                 zip.getInputStream(dataE).use { s ->
@@ -800,7 +805,7 @@ class Importer(
                         // prefer the copy next to the XML, otherwise the closest one
                         val pick = cands.firstOrNull { it.name.replace('\\', '/').substringBeforeLast('/', "") == xmlDir }
                             ?: cands.minByOrNull { it.name.length }!!
-                        onProgress("EDL: $base", -1f)
+                        onProgress(lt(R.string.imp_edl, base), -1f)
                         zip.getInputStream(pick).use { i -> File(chunks, base).outputStream().use { o -> i.copyTo(o, 1 shl 20) } }
                     }
                     FirmwareToolset.combineEdl(plan, chunks, raw) { msg -> log(msg) }
@@ -893,7 +898,7 @@ class Importer(
                     }
                     else -> if (e.size < (4L shl 20) || !importGptStream(entryStream, base)) drain(entryStream)
                 }
-                onProgress("Extracting: $base", 0.5f)
+                onProgress(lt(R.string.imp_extracting, base), 0.5f)
             }
             for ((key, pair) in vdat) {
                 val data = pair["data"]
@@ -957,10 +962,10 @@ class Importer(
         val first = ByteBuffer.allocate(8192)
         src.read(0, first)
         val fb = first.array()
-        val need = GptDisk.headSize(fb, fb.size) ?: throw IOException("$name: unreadable GPT")
+        val need = GptDisk.headSize(fb, fb.size) ?: throw LocalizedIOException("$name: unreadable GPT", R.string.imp_unreadable_gpt, name)
         val head = ByteBuffer.allocate(need).also { src.read(0, it) }.array()
-        val picks = GptDisk.pick(GptDisk.parse(head) ?: throw IOException("$name: unreadable GPT"))
-        if (picks.isEmpty()) throw IOException("$name: no boot/recovery/system partition in GPT")
+        val picks = GptDisk.pick(GptDisk.parse(head) ?: throw LocalizedIOException("$name: unreadable GPT", R.string.imp_unreadable_gpt, name))
+        if (picks.isEmpty()) throw LocalizedIOException("$name: no boot/recovery/system partition in GPT", R.string.imp_no_boot_recovery_system_partition_in, name)
         log("$name: full dump, partitions " + picks.joinToString { "${it.second.name} ${it.second.size shr 20} MB" })
         for ((kind, p) in picks) {
             if (cancelled) throw IOException("cancelled")
@@ -1008,11 +1013,11 @@ class Importer(
                 var tick = 0
                 while (pos < end) {
                     if (cancelled) throw IOException("cancelled")
-                    if (tmp.usableSpace < (64L shl 20)) throw IOException("Not enough space to unpack firmware")
+                    if (tmp.usableSpace < (64L shl 20)) throw LocalizedIOException("Not enough space to unpack firmware", R.string.imp_not_enough_space_to_unpack_firmware)
                     val r = input.read(buf, 0, minOf(buf.size.toLong(), end - pos).toInt())
                     if (r < 0) break
                     if (r > 0) feed(buf, r)
-                    if (++tick % 16 == 0) onProgress("Reading $label", (pos.toFloat() / end).coerceIn(0f, 1f) * 0.5f)
+                    if (++tick % 16 == 0) onProgress(lt(R.string.imp_reading, label), (pos.toFloat() / end).coerceIn(0f, 1f) * 0.5f)
                 }
             } finally { streams.forEach { runCatching { it.close() } } }
             for ((kind, _, f) in outs) {
@@ -1057,7 +1062,7 @@ class Importer(
 
     /** RAR support is used for RAR4/RAR5 firmware bundles; entries are streamed to temp files. */
     private fun importRar(file: File, name: String, depth: Int) {
-        if (depth > 8) throw IOException("nested archive depth exceeded")
+        if (depth > 8) throw LocalizedIOException("nested archive depth exceeded", R.string.imp_nested_archive_depth_exceeded)
         RarArchive(file).use { rar ->
             val sysRoot = findSystemRoot(rar.fileHeaders.map { (it.fileName ?: "").replace('\\', '/').trimStart('/') })
             val pending = ArrayList<Pair<File, String>>()
@@ -1084,8 +1089,9 @@ class Importer(
                     temp.delete()
                     pending.forEach { it.first.delete() }
                     vdat.values.forEach { slot -> slot.values.forEach { it.delete() } }
-                    throw IOException("RAR entry '$entryName' failed to unpack (${t.javaClass.simpleName}); " +
-                        "the archive may be damaged or the RAR decoder (junrar) is too old", t)
+                    throw LocalizedIOException("RAR entry '$entryName' failed to unpack (${t.javaClass.simpleName}); " +
+                        "the archive may be damaged or the RAR decoder (junrar) is too old", R.string.imp_rar_entry_failed_to_unpack_the, entryName, t.javaClass.simpleName)
+                        .also { it.initCause(t) }
                 }
                 if (sysRel != null) {
                     FileInputStream(temp).use { input -> writeFile(sysRel, input, null) }
@@ -1168,7 +1174,7 @@ class Importer(
         val kind = SonySin.kind(part)
         if (kind == SonySin.Kind.SKIP) { log("FTF: skipped $base ($part)"); return }
         if (kind == SonySin.Kind.SYSTEM && gotSystem) { log("FTF: skipped $base, system already imported"); return }
-        onProgress("Unpacking Sony image $part", -1f)
+        onProgress(lt(R.string.imp_unpacking_sony_image, part), -1f)
         val work = File(tmp, "sin-${System.nanoTime()}").apply { mkdirs() }
         try {
             val images = SonySin.unpack(src, work, base, { log(it) }) { cancelled }
@@ -1183,7 +1189,7 @@ class Importer(
                         val img = when {
                             srcs.all { SparseSource.probe(it) } -> SparseSource(srcs)
                             srcs.size == 1 -> srcs[0]
-                            else -> throw IOException("$base: ${srcs.size} image parts that are not a sparse set")
+                            else -> throw LocalizedIOException("$base: ${srcs.size} image parts that are not a sparse set", R.string.imp_image_parts_that_are_not_a, base, srcs.size)
                         }
                         when (kind) {
                             SonySin.Kind.OEM -> importOem(img)
@@ -1254,7 +1260,7 @@ class Importer(
                     if (n < 0) break
                     count += n
                     if (count > 16L * 1024 * 1024 * 1024 || tmp.usableSpace < n + 32L * 1024 * 1024)
-                        throw IOException("Not enough space to unpack firmware")
+                        throw LocalizedIOException("Not enough space to unpack firmware", R.string.imp_not_enough_space_to_unpack_firmware)
                     o.write(buffer, 0, n)
                 }
             }
@@ -1264,7 +1270,7 @@ class Importer(
 
     /** CPIO (newc/crc/odc), used by recovery packages and Android TV firmware bundles. */
     private fun importCpioStream(input: InputStream, name: String, depth: Int) {
-        if (depth > 8) throw IOException("nested archive depth exceeded")
+        if (depth > 8) throw LocalizedIOException("nested archive depth exceeded", R.string.imp_nested_archive_depth_exceeded)
         CpioArchiveInputStream(input, "UTF-8").use { cpio ->
             while (true) {
                 if (cancelled) throw IOException("cancelled")
@@ -1383,7 +1389,7 @@ class Importer(
                     }
                 }
             }
-            if (files % 200 == 0) onProgress("Extracting: $base", -1f)
+            if (files % 200 == 0) onProgress(lt(R.string.imp_extracting, base), -1f)
         }
     }
 
@@ -1418,7 +1424,7 @@ class Importer(
         // Its top level (init*.rc, sepolicy, sbin/, default.prop...) is the ramdisk, so it goes to the guest root as is.
         val asRoot = mount == "system" && AbLayout.isSystemAsRoot(fs)
         if (asRoot) { systemAsRoot = true; log("image system: system-as-root layout (root file system in the partition)") }
-        onProgress("Reading image $mount (ext4, block ${fs.blockSize})", -1f)
+        onProgress(lt(R.string.imp_reading_image_ext_block, mount, fs.blockSize), -1f)
         var n = 0
         // what is needed to rebuild this image later from the files (block-based OTAs work on the image)
         val cap = if (mount == "system" && !asRoot) SystemLayout.Capture(fs, src) else null
@@ -1439,10 +1445,10 @@ class Importer(
                     files++; bytes += node.size
                 }
             }
-            if (++n % 150 == 0) onProgress("$mount: ${path.substringAfterLast('/')}", -1f)
+            if (++n % 150 == 0) onProgress(lt(R.string.ota_detail_with_name, mount, path.substringAfterLast('/')), -1f)
         }
         if (cap != null) {
-            onProgress("Recording the layout of image $mount", -1f)
+            onProgress(lt(R.string.imp_recording_the_layout_of_image, mount), -1f)
             val lf = SystemLayout.file(paths.dir)
             runCatching { cap.finish(lf) }.onFailure {
                 lf.delete()
@@ -1466,15 +1472,15 @@ class Importer(
             FirmwareToolset.detect(headFile)
         } finally { headFile.delete() }
         if (kind != "SQUASHFS" && kind != "RFS")
-            throw IOException("unrecognized filesystem for $mount (expected ext4, YAFFS2, UBIFS, SquashFS or RFS)")
+            throw LocalizedIOException("unrecognized filesystem for $mount (expected ext4, YAFFS2, UBIFS, SquashFS or RFS)", R.string.imp_unrecognized_filesystem_for_expected_ext_yaf, mount)
         val fsName = if (kind == "SQUASHFS") "SquashFS" else "RFS"
-        onProgress("Reading image $mount ($fsName)", -1f)
+        onProgress(lt(R.string.imp_reading_image, mount, fsName), -1f)
         val dir = File(tmp, "fs-${System.nanoTime()}").apply { mkdirs() }
         try {
             val image = spill(streamOf(src), "$mount.img").let { File(dir, "$mount.img").also { d -> it.copyTo(d, true); it.delete() } }
             val artifacts = FirmwareToolset.extract(image, File(dir, "out")) { msg -> log(msg) }
             val zipFile = artifacts.firstOrNull { it.file.isFile }?.file
-                ?: throw IOException("$fsName image produced no files")
+                ?: throw LocalizedIOException("$fsName image produced no files", R.string.imp_image_produced_no_files, fsName)
             if (keep && kind == "SQUASHFS") {
                 // the partition of a block OTA: delta OTAs run on this image, see StockImage
                 val kept = StockImage.file(paths.dir)
@@ -1503,7 +1509,7 @@ class Importer(
                             zip.getInputStream(e).use { writeFile(rel, it, e.unixMode.takeIf { m -> m != 0 }) }
                         }
                     }
-                    if (++n % 150 == 0) onProgress("$mount: ${inner.substringAfterLast('/')}", -1f)
+                    if (++n % 150 == 0) onProgress(lt(R.string.ota_detail_with_name, mount, inner.substringAfterLast('/')), -1f)
                 }
             }
             if (mount == "system") gotSystem = true
@@ -1512,33 +1518,33 @@ class Importer(
     }
 
     private fun importYaffs2(src: RandomSource, mount: String) {
-        onProgress("Reading image $mount (YAFFS2)", -1f)
+        onProgress(lt(R.string.imp_reading_image_yaffs, mount), -1f)
         val fs = Yaffs2Reader(src) { if (cancelled) throw IOException("cancelled") }
         var n = 0
         fs.walk { path, node ->
             val rel = "$mount/$path"
             val f = FirmwareContainers.destination(root, rel)
             when (node.type) {
-                3 -> { if (!f.isDirectory && !f.mkdirs()) throw IOException("cannot create $rel") }
+                3 -> { if (!f.isDirectory && !f.mkdirs()) throw LocalizedIOException("cannot create $rel", R.string.imp_cannot_create, rel) }
                 2 -> {
                     val target = if (node.alias.startsWith("/")) node.alias.trimStart('/')
                         else rel.substringBeforeLast('/') + "/" + node.alias
                     val normalized = java.nio.file.Paths.get(target).normalize().toString()
                     if (node.alias.isEmpty() || normalized == ".." || normalized.startsWith("../"))
-                        throw IOException("YAFFS2 symlink escapes guest root")
+                        throw LocalizedIOException("YAFFS2 symlink escapes guest root", R.string.imp_yaffs_symlink_escapes_guest_root)
                     symlinks.add(node.alias to "/$rel")
                 }
                 1, 4 -> {
                     f.parentFile?.mkdirs()
                     // Links are only created by finishTree, after all file bytes.
-                    if (isLink(f)) throw IOException("YAFFS2 destination is a symlink")
+                    if (isLink(f)) throw LocalizedIOException("YAFFS2 destination is a symlink", R.string.imp_yaffs_destination_is_a_symlink)
                     f.outputStream().buffered(1 shl 20).use { fs.copy(node, it) }
                     applyMode(f, fs.fileMode(node) and 0xfff)
                     files++; bytes += f.length()
                 }
                 5 -> {} // Guest /dev is created by the VM; never mknod on the host.
             }
-            if (++n % 150 == 0) onProgress("$mount: ${path.substringAfterLast('/')}", -1f)
+            if (++n % 150 == 0) onProgress(lt(R.string.ota_detail_with_name, mount, path.substringAfterLast('/')), -1f)
         }
         if (mount == "system") gotSystem = true
         val geo = fs.geometry
@@ -1553,7 +1559,7 @@ class Importer(
      * See [UbiFsReader] for the supported compression types (none, LZO, zlib, zstd and the MediaTek LZ4K).
      */
     private fun importUbifs(src: RandomSource, mount: String) {
-        onProgress("Reading image $mount (UBIFS)", -1f)
+        onProgress(lt(R.string.imp_reading_image_ubifs, mount), -1f)
         val fs = UbiFsReader(src) { if (cancelled) throw IOException("cancelled") }
         log("UBIFS $mount: ${fs.summary}")
         var n = 0
@@ -1561,26 +1567,26 @@ class Importer(
             val rel = "$mount/$path"
             val f = FirmwareContainers.destination(root, rel)
             when (node.type) {
-                3 -> { if (!f.isDirectory && !f.mkdirs()) throw IOException("cannot create $rel") }
+                3 -> { if (!f.isDirectory && !f.mkdirs()) throw LocalizedIOException("cannot create $rel", R.string.imp_cannot_create, rel) }
                 2 -> {
                     val target = if (node.target.startsWith("/")) node.target.trimStart('/')
                         else rel.substringBeforeLast('/') + "/" + node.target
                     val normalized = java.nio.file.Paths.get(target).normalize().toString()
                     if (node.target.isEmpty() || normalized == ".." || normalized.startsWith("../"))
-                        throw IOException("UBIFS symlink escapes guest root")
+                        throw LocalizedIOException("UBIFS symlink escapes guest root", R.string.imp_ubifs_symlink_escapes_guest_root)
                     symlinks.add(node.target to "/$rel")
                 }
                 1 -> {
                     f.parentFile?.mkdirs()
                     // Links are only created by finishTree, after all file bytes.
-                    if (isLink(f)) throw IOException("UBIFS destination is a symlink")
+                    if (isLink(f)) throw LocalizedIOException("UBIFS destination is a symlink", R.string.imp_ubifs_destination_is_a_symlink)
                     f.outputStream().buffered(1 shl 20).use { fs.copy(node, it) }
                     applyMode(f, fs.fileMode(node) and 0xfff)
                     files++; bytes += f.length()
                 }
                 else -> {} // Guest /dev is created by the VM; never mknod on the host.
             }
-            if (++n % 150 == 0) onProgress("$mount: ${path.substringAfterLast('/')}", -1f)
+            if (++n % 150 == 0) onProgress(lt(R.string.ota_detail_with_name, mount, path.substringAfterLast('/')), -1f)
         }
         if (mount == "system") gotSystem = true
         log("UBIFS $mount: $n objects")
@@ -1682,7 +1688,7 @@ class Importer(
                 override fun file(path: String, mode: Int, size: Long): java.io.OutputStream? {
                     if (size > MAX_RAMDISK_FILE) { log("boot rootfs: skipped $path (${size shr 20} MB)"); return null }
                     total += size
-                    if (total > MAX_RAMDISK) throw IOException("boot rootfs too large")
+                    if (total > MAX_RAMDISK) throw LocalizedIOException("boot rootfs too large", R.string.imp_boot_rootfs_too_large)
                     curMode = mode
                     return java.io.ByteArrayOutputStream(size.toInt().coerceAtLeast(16)).also { cur = it }
                 }
@@ -1728,7 +1734,7 @@ class Importer(
                 if (n < 0) break
                 bytes += n
                 if (bytes > 16L * 1024 * 1024 * 1024 || root.usableSpace < n + 32L * 1024 * 1024)
-                    throw IOException("Not enough space to unpack firmware")
+                    throw LocalizedIOException("Not enough space to unpack firmware", R.string.imp_not_enough_space_to_unpack_firmware)
                 o.write(buffer, 0, n)
             }
         }

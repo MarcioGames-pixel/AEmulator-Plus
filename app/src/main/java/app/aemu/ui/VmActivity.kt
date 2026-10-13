@@ -655,7 +655,7 @@ class VmActivity : ComponentActivity() {
     @Composable
     private fun SmsDialog(onDone: () -> Unit) {
         var from by remember { mutableStateOf("+10000000000") }
-        var body by remember { mutableStateOf("Hello from AEmulator") }
+        var body by remember { mutableStateOf(getString(R.string.sms_default_body)) }
         AlertDialog(onDismissRequest = onDone,
             title = { Text(stringResource(R.string.m_sms)) },
             text = {
@@ -919,7 +919,7 @@ class VmActivity : ComponentActivity() {
                     DropdownMenuItem(text = { Text(stringResource(R.string.m_power_menu)) }, leadingIcon = { Icon(Icons.Rounded.PowerSettingsNew, null) },
                         onClick = { menu = false; vm.input.press(InputService.KEY_POWER, 1500) })
                     if (!vm.settings.motionSensors) DropdownMenuItem(text = { Text(stringResource(R.string.m_rotate_screen)) }, leadingIcon = { Icon(Icons.Rounded.ScreenRotation, null) },
-                        enabled = running && vm.img.api in 9..25 && !vm.recoveryMode && !vm.nativeUi,
+                        enabled = running && vm.img.api in 9..25 && !vm.img.sensorsOff && !vm.recoveryMode && !vm.nativeUi,
                         onClick = { menu = false; rotateScreen() })
                     // long-press Menu makes 2.x–4.x call InputMethodManager.toggleSoftInput: the firmware's own keyboard
                     DropdownMenuItem(text = { Text(stringResource(R.string.m_keyboard)) }, leadingIcon = { Icon(Icons.Rounded.Keyboard, null) },
@@ -1098,7 +1098,7 @@ class VmActivity : ComponentActivity() {
                 if (state == GuestVm.State.FAILED) {
                     Text(stringResource(R.string.failed_start), style = MaterialTheme.typography.headlineSmall)
                     Spacer(Modifier.height(8.dp))
-                    Text(vm.failure ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    Text(vm.failure?.text(androidx.compose.ui.platform.LocalContext.current) ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { stopVm() }) { Text(stringResource(R.string.close)) }

@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">مینو بٹن چھپائیں</string>
+    <string name="vs_hide_menu_sub">… بٹن چھپاتا ہے۔ فون کا Back بٹن یا بیک جیسچر Android کو Back بھیجنے کے بجائے ایمولیٹر مینو کھولتا ہے۔ گیسٹ کے نیویگیشن بٹن اب بھی Android کو کنٹرول کرتے ہیں۔</string>
+    <string name="vs_vibration">گیسٹ وائبریشن</string>
+    <string name="vs_vibration_sub">پرانی گیسٹ وائبریشن کو فون تک آگے بھیجتا ہے۔ اگلے بوٹ پر لاگو ہوتا ہے؛ ہر پلس زیادہ سے زیادہ 60 سیکنڈ تک محدود ہے۔</string>
+    <string name="nav_buttons">نیویگیشن بٹن</string>
+    <string name="nav_order">بٹنوں کی ترتیب (بائیں سے دائیں)</string>
+    <string name="nav_earlier">پہلے</string>
+    <string name="nav_later">بعد میں</string>
+    <string name="nav_reset">بٹن ری سیٹ کریں</string>
+    <string name="nav_search">تلاش</string>
+    <string name="nav_power">پاور</string>
+    <string name="nav_go_to_recovery">ریکوری پر جائیں</string>
+    <string name="nav_volume_down">آواز کم</string>
+    <string name="nav_volume_up">آواز زیادہ</string>
+    <string name="nav_up">D-pad اوپر</string>
+    <string name="nav_down">D-pad نیچے</string>
+    <string name="nav_left">D-pad بائیں</string>
+    <string name="nav_right">D-pad دائیں</string>
+    <string name="nav_center">D-pad درمیان</string>
+    <string name="nav_trackball">ٹریک بال</string>
+    <string name="nav_trackball_sub">گھمانے کے لیے نیویگیشن بار کے اوپر دائرے پر سوائپ کریں؛ منتخب کرنے کے لیے ٹیپ کریں۔</string>
+    <string name="nav_dpad_mode">ایرو کی موڈ</string>
+    <string name="nav_dpad_sub">بند: گیسٹ ایپس کے لیے حقیقی ریلیٹو ٹریک بال ایونٹس۔ آن: اس کے بجائے D-pad کی پریسز۔ دونوں نہیں بھیجتا۔</string>
+    <string name="nav_sensitivity">حساسیت: %1$d dp فی قدم (کم = تیز)</string>
+    <string name="nav_trackball_waiting">ابھی گیسٹ ٹریک بال کا کنکشن نہیں ہے</string>
+    <string name="nav_trackball_recovery">ریکوری: ایرو کی موڈ استعمال کریں</string>
+    <string name="vs_bluetooth">ہوسٹ بلوٹوتھ (تجرباتی)</string>
+    <string name="vs_bluetooth_sub">گیسٹ کو فون کے ذریعے بلوٹوتھ ڈیوائسز اسکین کرنے، پیئر لسٹ دیکھنے اور ان سے بات کرنے دیں: کلاسک سیریل (RFCOMM) اور Bluetooth LE (GATT)۔ بلوٹوتھ کی اجازت اور VM کا مکمل ری اسٹارٹ درکار ہے۔ خام HCI رسائی نہیں: گیسٹ فون کا اڈاپٹر ایک برج کے ذریعے دیکھتا ہے، اس لیے ہیڈسیٹس (آڈیو پروفائلز) معاون نہیں ہیں۔</string>
+    <string name="bluetooth_permission_denied">بلوٹوتھ کی اجازت مسترد کر دی گئی: گیسٹ ہوسٹ بلوٹوتھ کے بغیر بوٹ ہوگا۔</string>
+</resources>

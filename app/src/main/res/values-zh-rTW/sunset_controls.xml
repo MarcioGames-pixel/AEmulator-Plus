@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">隱藏選單按鈕</string>
+    <string name="vs_hide_menu_sub">隱藏 … 按鈕。手機的返回鍵或返回手勢會開啟模擬器選單，而不是將返回傳送給 Android。客體的導覽按鈕仍可控制 Android。</string>
+    <string name="vs_vibration">客體震動</string>
+    <string name="vs_vibration_sub">將舊版客體的震動轉送至手機。下次開機時生效；每次震動上限為 60 秒。</string>
+    <string name="nav_buttons">導覽按鈕</string>
+    <string name="nav_order">按鈕順序（由左至右）</string>
+    <string name="nav_earlier">往前</string>
+    <string name="nav_later">往後</string>
+    <string name="nav_reset">重設按鈕</string>
+    <string name="nav_search">搜尋</string>
+    <string name="nav_power">電源</string>
+    <string name="nav_go_to_recovery">前往 Recovery</string>
+    <string name="nav_volume_down">音量減</string>
+    <string name="nav_volume_up">音量加</string>
+    <string name="nav_up">方向鍵 上</string>
+    <string name="nav_down">方向鍵 下</string>
+    <string name="nav_left">方向鍵 左</string>
+    <string name="nav_right">方向鍵 右</string>
+    <string name="nav_center">方向鍵 中央</string>
+    <string name="nav_trackball">軌跡球</string>
+    <string name="nav_trackball_sub">在導覽列上方的圓圈上滑動即可滾動；點一下即可選取。</string>
+    <string name="nav_dpad_mode">方向鍵模式</string>
+    <string name="nav_dpad_sub">關閉：向客體應用程式傳送真實的相對軌跡球事件。開啟：改為傳送方向鍵按下事件。不會同時傳送兩者。</string>
+    <string name="nav_sensitivity">靈敏度：每步 %1$d dp（數值越低越快）</string>
+    <string name="nav_trackball_waiting">尚無客體軌跡球連線</string>
+    <string name="nav_trackball_recovery">Recovery：請使用方向鍵模式</string>
+    <string name="vs_bluetooth">主機藍牙（實驗性）</string>
+    <string name="vs_bluetooth_sub">讓客體透過手機掃描藍牙裝置、列出配對裝置並與其通訊：傳統序列埠（RFCOMM）與低功耗藍牙（GATT）。需要藍牙權限並完整重新啟動虛擬機器。這不是原始 HCI：客體是透過橋接看到手機的藍牙介面卡，因此不支援耳機（音訊設定檔）。</string>
+    <string name="bluetooth_permission_denied">藍牙權限遭拒：客體將在沒有主機藍牙的情況下開機。</string>
+</resources>

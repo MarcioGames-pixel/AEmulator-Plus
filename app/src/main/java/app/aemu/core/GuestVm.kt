@@ -3,6 +3,7 @@
  * GPL-3.0; upstream attribution retained in NOTICE.md. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.os.Process as AProcess
 import android.os.SystemClock
@@ -50,7 +51,8 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
     @Volatile private var zygoteRestarts = 0
     @Volatile private var imeRetried = false
         private set
-    @Volatile var failure: String? = null
+    /** Why the last start failed; the screen shows [Msg.text] in the chosen language, logs get the English wording. */
+    @Volatile var failure: Msg? = null
         private set
     @Volatile var surface: Surface? = null
         set(v) { field = v; if (engine == Engine.KK) GlBridge.surface(v) }
@@ -132,8 +134,8 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
     @Synchronized fun boot() {
         if (state == State.BOOTING || state == State.RUNNING || state == State.PREPARING) return
         try { storageLease.acquire() } catch (t: Throwable) {
-            failure = "VM storage is busy: ${t.message}"
-            log(failure!!)
+            failure = Msg("VM storage is busy: ${t.message}", R.string.vmfail_storage_busy, t.message)
+            log(failure!!.english)
             setState(State.FAILED)
             return
         }
@@ -148,7 +150,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
             camera.stop()
             bluetooth.stop()
             motion.stop()
-            failure = t.message ?: t.toString()
+            failure = Msg.of(t)
             log("✖ boot aborted: $failure")
             setState(State.FAILED)
         }
@@ -202,8 +204,8 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                 if (power.length() > 0) { val request = power.readText().trim(); power.writeText(""); powerRequest(request) }
                 val exited = renderers.firstOrNull { service -> synchronized(procs) { procs[service.name]?.isAlive != true } }
                 if (exited != null && !stopping) {
-                    failure = "Charging service ${exited.name} exited. Check its host log; vendor hardware support may be missing."
-                    log(failure!!); setState(State.FAILED); break
+                    failure = Msg("Charging service ${exited.name} exited. Check its host log; vendor hardware support may be missing.", R.string.vmfail_charging_service_exited, exited.name)
+                    log(failure!!.english); setState(State.FAILED); break
                 }
             }
         }, "charging-watchdog").apply { isDaemon = true; start() }
@@ -306,7 +308,8 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                 val dead = synchronized(procs) { procs[service.name]?.isAlive != true }
                 if (dead && !stopping && !powerHandled) {
                     val code = synchronized(procs) { procs[service.name] }?.let { runCatching { it.exitValue() }.getOrNull() }
-                    failure = "MMI program ${service.argv.first()} exited (code ${code ?: "?"}). See the ${service.name} log in the VM log folder; missing vendor hardware is expected, a crash is not."
+                    failure = Msg("MMI program ${service.argv.first()} exited (code ${code ?: "?"}). See the ${service.name} log in the VM log folder; missing vendor hardware is expected, a crash is not.",
+                        R.string.vmfail_mmi_program_exited, service.argv.first(), code ?: "?", service.name)
                     log("✖ $failure"); dumpMmiLog(service.name); setState(State.FAILED); break
                 }
             }
@@ -511,6 +514,10 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                 overrides["dalvik.vm.extra-opts"] = "-Xnorelocate"
                 // installd's dex2oat starts its own runtime: without this it tries patchoat too and fails every app
                 overrides["dalvik.vm.dex2oat-flags"] = overrides["dalvik.vm.dex2oat-flags"] + " --runtime-arg -Xnorelocate"
+                // Samsung 5.x/6.0 installd hands the whole property to dex2oat as one argument, which then fails to parse
+                // ("-j" value '4 --runtime-arg -Xnorelocate'): split it in a dex2oat wrapper. Other devices are untouched.
+                if (isSamsungImage && img.api in 21..23 && Dex2oatArgSplit.install(paths.root))
+                    log("dex2oat: wrapper splits the combined dex2oat-flags argument (Samsung installd)")
             }
         }
         // Android L preview (API 20, build LPW39): ART only. Its libart has no -Xrelocate/-Xnorelocate and there is no patchoat,
@@ -676,6 +683,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                     "-Djava.class.path=/system/framework/aemu-stubs.jar", "/system/bin", "app.aemu.stub.NetStub"), optional = true))
             }
             if (svc.name == BootMediaServices.LEGACY_LOGO) { LegacyLogoPatch.apply(paths.root, ::log); LegacyLogoPatch.provideHeadsetState(paths.root, ::log) }
+            if (svc.name == "zygote" && needsBatteryPropertiesGuard) ensureBatteryProperties(plan)
             startService(svc)
             svc.waitSocket?.let { sock -> waitFor("socket $sock", 20_000) { paths.socket(sock).exists() } }
             if (svc.delayMs > 0) Thread.sleep(svc.delayMs)
@@ -824,7 +832,10 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
      */
     private val isLpw39: Boolean by lazy { img.buildId.trim().equals("LPW39", ignoreCase = true) }
 
-    private val bootServices: List<GuestService> by lazy {
+    /** The saved/rebuilt plan with healthd forced back to its normal (service-publishing) mode. */
+    private val bootServices: List<GuestService> by lazy { rawBootServices.map { InitPlan.normalHealthd(it) } }
+
+    private val rawBootServices: List<GuestService> by lazy {
         runCatching {
             if (!File(paths.root, "advanced_meta_init.rc").isFile) return@runCatching img.services
             val files = (paths.root.listFiles()?.filter { it.isFile && it.name.endsWith(".rc") }
@@ -864,7 +875,11 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
 
     private fun spawn(name: String, cmd: List<String>, env: Map<String, String>) {
         val log = paths.log(name)
-        val pb = ProcessBuilder(cmd).directory(paths.bin).redirectErrorStream(true)
+        // A real init starts services with cwd "/", and some firmware daemons open relative paths (MediaTek netd does
+        // fopen("proc/cpuinfo")). qemu only remaps absolute guest paths, so netd must start inside the guest root,
+        // otherwise the open fails, netd calls feof(NULL) and dies, and system_server then fails to start.
+        val cwd = if (name == "netd") paths.root else paths.bin
+        val pb = ProcessBuilder(cmd).directory(cwd).redirectErrorStream(true)
         pb.environment().clear()
         pb.environment().putAll(if (env.isEmpty()) mapOf("PATH" to "/system/bin") else env)
         // 7.0+ zygote refuses to fork with pipes among its descriptors (it only reopens files and devices):
@@ -914,6 +929,61 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
 
     /** True while Samsung's playlogos1 paints the boot animation into fb0 (the UI then shows fb0 instead of the GL surface). */
     fun legacyLogoRunning(): Boolean = bootDoneAt == 0L && synchronized(procs) { procs[BootMediaServices.LEGACY_LOGO]?.isAlive == true }
+
+    /** The healthd/batteryproperties guard is limited to Samsung firmware on Android 5.0+ (API 21); other devices are left alone. */
+    private val isSamsungImage: Boolean by lazy {
+        img.brand.equals("samsung", ignoreCase = true) || img.skin.contains("touchwiz", ignoreCase = true)
+    }
+    private val needsBatteryPropertiesGuard: Boolean by lazy { img.api >= 21 && isSamsungImage }
+
+    /**
+     * 4.4+: BatteryService.onStart looks up "batteryproperties" (published by healthd) and dies with a
+     * NullPointerException when it is missing; that kills system_server and zygote exits with 137. Check the
+     * registration before zygote starts and give healthd another start if it is absent, so the boot does not
+     * fail on a healthd that came up without registering. Never blocks the boot when the guest cannot be queried.
+     */
+    private fun ensureBatteryProperties(plan: List<GuestService>) {
+        // only the healthd that the device's own plan started; nothing is started or invented here
+        val hd = plan.firstOrNull { it.name == "healthd" }?.let { InitPlan.normalHealthd(it) } ?: return
+        val running = synchronized(procs) { procs["healthd"] }?.takeIf { it.isAlive } ?: return
+        log("healthd: command ${hd.argv.joinToString(" ")}, pid ${pidOf(running) ?: "?"}")
+        for (attempt in 1..3) {
+            if (stopping) return
+            val until = SystemClock.uptimeMillis() + 6_000
+            var verdict: Boolean? = null
+            var lastCheck = ""
+            do {
+                val out = runCatching {
+                    guestRunner.run(listOf("/system/bin/service", "check", "batteryproperties"), 10_000).second
+                }.getOrDefault("")
+                lastCheck = out.lines().map { it.trim() }.lastOrNull { it.isNotEmpty() && !it.startsWith("WARNING: linker") } ?: "(no output)"
+                verdict = when {
+                    out.contains("not found", true) -> false
+                    out.contains("found", true) -> true
+                    else -> null
+                }
+                if (verdict != false) break
+                Thread.sleep(500)
+            } while (SystemClock.uptimeMillis() < until && !stopping)
+            log("healthd: service check batteryproperties -> \"${lastCheck.take(160)}\" ($attempt/3)")
+            if (verdict == true) {
+                if (attempt > 1) log("healthd: batteryproperties registered after restart ($attempt/3)")
+                File(paths.bin, "strace.healthd").delete()
+                return
+            }
+            if (verdict == null) { log("healthd: batteryproperties cannot be queried (no guest 'service' tool), continuing"); return }
+            val alive = synchronized(procs) { procs["healthd"]?.isAlive == true }
+            log("⚠ healthd (running=$alive) has not registered batteryproperties ($attempt/3)")
+            if (attempt == 3) break
+            // the next start is traced into the healthd log (qemu strace), to see where it stops
+            runCatching { File(paths.bin, "strace.healthd").createNewFile() }
+            synchronized(procs) { procs.remove("healthd") }?.let { runCatching { it.destroyForcibly() } }
+            Thread.sleep(300)
+            runCatching { startService(hd) }
+        }
+        File(paths.bin, "strace.healthd").delete()
+        log("✖ batteryproperties is still missing, system_server will fail in BatteryService; healthd command: ${hd.argv.joinToString(" ")}")
+    }
 
     private fun waitFor(what: String, ms: Long, cond: () -> Boolean): Boolean {
         val until = SystemClock.uptimeMillis() + ms
@@ -1092,9 +1162,22 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                             }
                         }
                         if (state != State.FAILED && (!everBooted || zygoteRestarts >= 6)) {
-                            failure = "zygote exited (code $code)" + if (code == 137) " — SIGKILL (cause not established)" else ""
+                            failure = if (code == 137) Msg("zygote exited (code $code) — SIGKILL (cause not established)", R.string.vmfail_zygote_exited_sigkill, code)
+                                else Msg("zygote exited (code $code)", R.string.vmfail_zygote_exited, code)
+                            // zygote kills itself with SIGKILL when system_server dies, so 137 is only the end of the chain
+                            if (code == 137 && guestLogHas("Failure starting system services"))
+                                failure = Msg("system_server failed to start its services (zygote exited with 137 as a result); see the first BOOT FAILURE in the guest log", R.string.vmfail_system_server_services)
+                            if (code == 137 && guestLogHas("IBatteryPropertiesRegistrar.registerListener")) {
+                                // registered but not found by system_server, or never registered? record what the guest says now
+                                runCatching {
+                                    val r = guestRunner.run(listOf("/system/bin/service", "check", "batteryproperties"), 8_000).second
+                                    log("healthd: after the failure, service check batteryproperties -> \"${r.lines().map { it.trim() }.lastOrNull { it.isNotEmpty() && !it.startsWith("WARNING: linker") }.orEmpty().take(160)}\"")
+                                }
+                            }
+                            if (code == 137 && guestLogHas("IBatteryPropertiesRegistrar.registerListener"))
+                                failure = Msg("system_server cannot start: healthd did not register the \"batteryproperties\" service (BatteryService got null); see the healthd log in the VM log folder", R.string.vmfail_system_server_healthd)
                             if (code == 137 && guestLogHas("No original dex files found"))
-                                failure = "system_server cannot start: the precompiled code of the framework (system/framework/oat) is missing from this container — import the firmware again"
+                                failure = Msg("system_server cannot start: the precompiled code of the framework (system/framework/oat) is missing from this container — import the firmware again", R.string.vmfail_system_server_oat_missing)
                             log("✖ $failure"); setState(State.FAILED)
                         } else if (state != State.FAILED && everBooted) {
                             zygoteRestarts++
@@ -1251,7 +1334,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         if (n > 0) log("killed apps of previous zygote: $n")
         // healthd keeps the battery listener of the dead system_server and stops answering the new one:
         // BatteryService.onStart then blocks in registerListener forever
-        img.services.firstOrNull { it.name == "healthd" }?.let { h ->
+        bootServices.firstOrNull { it.name == "healthd" }?.let { h ->
             synchronized(procs) { procs.remove("healthd") }?.let { runCatching { it.destroyForcibly() } }
             runCatching { startService(h) }
         }
@@ -1369,4 +1452,4 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
     private fun isLinkTo(f: File, target: String) = runCatching { android.system.Os.readlink(f.absolutePath) == target }.getOrDefault(false)
 
     private fun stamp() = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
-}
+}

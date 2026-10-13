@@ -72,6 +72,8 @@ import androidx.compose.ui.window.DialogProperties
 import app.aemu.R
 import app.aemu.core.GlyphSet
 import app.aemu.core.NavButton
+import app.aemu.core.localizedError
+import app.aemu.core.userMessage
 import app.aemu.core.VmTheme
 import app.aemu.core.VmThemes
 import java.util.UUID
@@ -87,7 +89,7 @@ internal fun VmThemeRow() {
     var open by remember { mutableStateOf(false) }
     ListItem(
         headlineContent = { Text(stringResource(R.string.th_title)) },
-        supportingContent = { Text(selected.name) },
+        supportingContent = { Text(VmThemes.displayName(ctx, selected)) },
         leadingContent = { Icon(Icons.Rounded.Palette, null) },
         trailingContent = { MiniBar(selected, Modifier.width(120.dp)) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -133,14 +135,14 @@ private fun ThemeSheet(onDismiss: () -> Unit) {
         val t = exporting; exporting = null
         if (uri != null && t != null) runCatching {
             ctx.contentResolver.openOutputStream(uri)?.use { it.write(VmThemes.export(ctx, t)) }
-        }.onSuccess { toast(ctx, ctx.getString(R.string.th_exported)) }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.message)) }
+        }.onSuccess { toast(ctx, ctx.getString(R.string.th_exported)) }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.userMessage(ctx))) }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
-            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("cannot read the file")
+            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: localizedError("cannot read the file", R.string.err_cannot_read_the_file)
             VmThemes.select(ctx, VmThemes.import(ctx, bytes).id)
             version++
-        }.onSuccess { toast(ctx, ctx.getString(R.string.th_imported)) }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.message)) }
+        }.onSuccess { toast(ctx, ctx.getString(R.string.th_imported)) }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.userMessage(ctx))) }
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp)) {
@@ -151,11 +153,11 @@ private fun ThemeSheet(onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = t.id == selectedId, onClick = { VmThemes.select(ctx, t.id); version++ })
                 Column(Modifier.weight(1f)) {
-                    Text(t.name, style = MaterialTheme.typography.titleSmall)
+                    Text(VmThemes.displayName(ctx, t), style = MaterialTheme.typography.titleSmall)
                     MiniBar(t, Modifier.fillMaxWidth(0.85f).padding(top = 4.dp))
                 }
                 // built-in themes are copied before editing; only own themes can be deleted
-                IconButton(onClick = { editing = if (t.builtIn) t.copy(id = UUID.randomUUID().toString(), name = ctx.getString(R.string.th_copy_of, t.name), builtIn = false) else t }) {
+                IconButton(onClick = { editing = if (t.builtIn) t.copy(id = UUID.randomUUID().toString(), name = ctx.getString(R.string.th_copy_of, VmThemes.displayName(ctx, t)), builtIn = false) else t }) {
                     Icon(if (t.builtIn) Icons.Rounded.ContentCopy else Icons.Rounded.Edit, stringResource(if (t.builtIn) R.string.th_duplicate else R.string.th_edit))
                 }
                 IconButton(onClick = { exporting = t; exportLauncher.launch("${t.name}.${VmThemes.EXTENSION}") }) {
@@ -189,12 +191,12 @@ private fun ThemeEditor(initial: VmTheme, onCancel: () -> Unit, onSave: (VmTheme
     var picking by remember { mutableStateOf<String?>(null) }   // which colour the picker edits
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
-            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("cannot read the picture")
+            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: localizedError("cannot read the picture", R.string.err_cannot_read_the_picture)
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            require(bounds.outWidth > 0 && bounds.outHeight > 0) { "not a picture" }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) localizedError("not a picture", R.string.err_not_a_picture)
             t = t.copy(frameImage = VmThemes.importImage(ctx, bytes))
-        }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.message)) }
+        }.onFailure { toast(ctx, ctx.getString(R.string.th_failed, it.userMessage(ctx))) }
     }
     val frameBitmap = remember(t.frameImage) {
         VmThemes.imageFile(ctx, t)?.let { f ->

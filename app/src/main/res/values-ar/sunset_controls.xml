@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">الحساسية: %1$d dp لكل خطوة (الأقل أسرع)</string>
     <string name="nav_trackball_waiting">لا يوجد اتصال بكرة تتبع الضيف بعد</string>
     <string name="nav_trackball_recovery">الاسترداد: استخدم وضع مفاتيح الأسهم</string>
+    <string name="nav_go_to_recovery">الانتقال إلى recovery</string>
+    <string name="vs_bluetooth">بلوتوث المضيف (تجريبي)</string>
+    <string name="vs_bluetooth_sub">يتيح للضيف البحث عن أجهزة بلوتوث وعرض المقترنة منها والتواصل معها عبر الهاتف: التسلسلي الكلاسيكي (RFCOMM) وBluetooth LE ‏(GATT). يتطلب إذن البلوتوث وإعادة تشغيل كاملة للجهاز الافتراضي. ليس HCI خامًا: يرى الضيف محوّل الهاتف عبر جسر، لذا فإن سماعات الرأس (ملفات الصوت) غير مدعومة.</string>
+    <string name="bluetooth_permission_denied">تم رفض إذن البلوتوث: سيقلع الضيف بدون بلوتوث المضيف.</string>
 </resources>

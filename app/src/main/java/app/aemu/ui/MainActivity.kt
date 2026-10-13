@@ -2,6 +2,8 @@
  * unlock, active-guest Open and temporary long-press LPM boot. GPL-3.0; see NOTICE.md. */
 package app.aemu.ui
 
+import app.aemu.core.userMessageOrNull
+import app.aemu.core.ImportWarnings
 import android.Manifest
 import android.content.Intent
 import android.os.Build
@@ -214,7 +216,7 @@ fun Library(model: LibraryModel) {
                 AppUpdateManager.installApk(ctx, file)
             } catch (e: Exception) {
                 if (e !is kotlinx.coroutines.CancellationException) {
-                    updateState = UpdateState.Error(e.localizedMessage ?: ctx.getString(R.string.update_download_failed_generic))
+                    updateState = UpdateState.Error(e.userMessageOrNull(ctx) ?: ctx.getString(R.string.update_download_failed_generic))
                 }
             }
         }
@@ -398,6 +400,7 @@ private fun ContainerDialog(src: GuestImage, images: List<GuestImage>, onDismiss
 /** Firmware found in Internal storage/aemulator/firmware, rescanned whenever the screen comes back. */
 @Composable
 private fun FirmwareFolderCard(onImport: (java.io.File) -> Unit) {
+    val ctx = LocalContext.current
     var files by remember { mutableStateOf(emptyList<java.io.File>()) }
     val life = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(life) {
@@ -418,7 +421,7 @@ private fun FirmwareFolderCard(onImport: (java.io.File) -> Unit) {
                     Column(Modifier.weight(1f)) {
                         Text(f.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        Text("${f.length() / 1_048_576} MB", style = MaterialTheme.typography.bodySmall)
+                        Text(android.text.format.Formatter.formatShortFileSize(ctx, f.length()), style = MaterialTheme.typography.bodySmall)
                     }
                     androidx.compose.material3.FilledTonalButton(onClick = { onImport(f) }) { Text(stringResource(R.string.fw_folder_import)) }
                 }
@@ -477,6 +480,7 @@ private fun EmptyState(onHelp: () -> Unit) {
 
 @Composable
 private fun ImportCard(s: ImportState, onCancel: () -> Unit, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
     Card(
         colors = CardDefaults.cardColors(containerColor = if (s.error != null) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer),
         shape = MaterialTheme.shapes.large,
@@ -502,7 +506,7 @@ private fun ImportCard(s: ImportState, onCancel: () -> Unit, onDismiss: () -> Un
                 }
                 s.done != null -> {
                     Text("${s.done.name} · ${s.done.displayVersion} · ${s.done.skin}", style = MaterialTheme.typography.bodyMedium)
-                    s.done.warnings.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                    s.done.warnings.forEach { Text("• " + ImportWarnings.text(ctx, it), style = MaterialTheme.typography.bodySmall) }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -543,7 +547,7 @@ private fun ImageCard(img: GuestImage, onStart: () -> Unit, onSettings: () -> Un
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (img.lastBootMs > 0) Text(stringResource(R.string.last_boot, (img.lastBootMs / 1000).toInt()), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            img.warnings.firstOrNull()?.let { Text("⚠ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary) }
+            img.warnings.firstOrNull()?.let { Text("⚠ " + ImportWarnings.text(ctx, it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary) }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(shape = ButtonDefaults.shape, color = MaterialTheme.colorScheme.primary,

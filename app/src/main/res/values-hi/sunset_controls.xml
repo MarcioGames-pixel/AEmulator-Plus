@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">संवेदनशीलता: प्रति चरण %1$d dp (कम मान तेज़ है)</string>
     <string name="nav_trackball_waiting">गेस्ट ट्रैकबॉल से अभी कोई कनेक्शन नहीं है</string>
     <string name="nav_trackball_recovery">रिकवरी: ऐरो-की मोड का उपयोग करें</string>
+    <string name="nav_go_to_recovery">रिकवरी में जाएँ</string>
+    <string name="vs_bluetooth">होस्ट ब्लूटूथ (प्रायोगिक)</string>
+    <string name="vs_bluetooth_sub">गेस्ट को फ़ोन के ज़रिए ब्लूटूथ डिवाइस स्कैन करने, पेयर की गई सूची देखने और उनसे बात करने देता है: क्लासिक सीरियल (RFCOMM) और Bluetooth LE (GATT)। ब्लूटूथ अनुमति और VM का पूरा रीस्टार्ट ज़रूरी है। यह रॉ HCI नहीं है: गेस्ट फ़ोन के एडेप्टर को ब्रिज के ज़रिए देखता है, इसलिए हेडसेट (ऑडियो प्रोफ़ाइल) समर्थित नहीं हैं।</string>
+    <string name="bluetooth_permission_denied">ब्लूटूथ अनुमति अस्वीकृत: गेस्ट होस्ट ब्लूटूथ के बिना बूट होगा।</string>
 </resources>

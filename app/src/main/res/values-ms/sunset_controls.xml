@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Sembunyikan butang menu</string>
+    <string name="vs_hide_menu_sub">Sembunyikan butang …. Butang Kembali telefon atau gerak isyarat kembali membuka menu emulator dan bukannya menghantar Kembali kepada Android. Butang navigasi tetamu masih mengawal Android.</string>
+    <string name="vs_vibration">Getaran tetamu</string>
+    <string name="vs_vibration_sub">Majukan getaran tetamu warisan kepada telefon. Berkuat kuasa pada but seterusnya; setiap denyutan dihadkan kepada 60 saat.</string>
+    <string name="nav_buttons">Butang navigasi</string>
+    <string name="nav_order">Susunan butang (kiri ke kanan)</string>
+    <string name="nav_earlier">Lebih awal</string>
+    <string name="nav_later">Lebih lewat</string>
+    <string name="nav_reset">Set semula butang</string>
+    <string name="nav_search">Cari</string>
+    <string name="nav_power">Kuasa</string>
+    <string name="nav_go_to_recovery">Pergi ke pemulihan</string>
+    <string name="nav_volume_down">Perlahankan kelantangan</string>
+    <string name="nav_volume_up">Kuatkan kelantangan</string>
+    <string name="nav_up">D-pad atas</string>
+    <string name="nav_down">D-pad bawah</string>
+    <string name="nav_left">D-pad kiri</string>
+    <string name="nav_right">D-pad kanan</string>
+    <string name="nav_center">D-pad tengah</string>
+    <string name="nav_trackball">Bebola jejak</string>
+    <string name="nav_trackball_sub">Leret bulatan di atas bar navigasi untuk menggolek; ketik untuk memilih.</string>
+    <string name="nav_dpad_mode">Mod kekunci anak panah</string>
+    <string name="nav_dpad_sub">Mati: peristiwa bebola jejak relatif sebenar untuk aplikasi tetamu. Hidup: tekanan kekunci D-pad sebagai gantinya. Tidak menghantar kedua-duanya.</string>
+    <string name="nav_sensitivity">Kepekaan: %1$d dp setiap langkah (lebih rendah lebih pantas)</string>
+    <string name="nav_trackball_waiting">Belum ada sambungan bebola jejak tetamu</string>
+    <string name="nav_trackball_recovery">Pemulihan: gunakan mod kekunci anak panah</string>
+    <string name="vs_bluetooth">Bluetooth hos (eksperimen)</string>
+    <string name="vs_bluetooth_sub">Benarkan tetamu mengimbas, menyenaraikan peranti berpasangan dan berkomunikasi dengan peranti Bluetooth melalui telefon: bersiri klasik (RFCOMM) dan Bluetooth LE (GATT). Memerlukan kebenaran Bluetooth dan mulakan semula VM sepenuhnya. Bukan HCI mentah: tetamu melihat penyesuai telefon melalui jambatan, jadi fon kepala (profil audio) tidak disokong.</string>
+    <string name="bluetooth_permission_denied">Kebenaran Bluetooth ditolak: tetamu akan but tanpa Bluetooth hos.</string>
+</resources>

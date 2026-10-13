@@ -12,8 +12,9 @@ from keys import KEYS  # noqa: E402
 DIRS = {
     "en": "values", "ru": "values-ru", "uk": "values-uk", "de": "values-de", "fr": "values-fr",
     "es": "values-es", "pt-BR": "values-pt-rBR", "pt-PT": "values-pt-rPT", "it": "values-it", "pl": "values-pl", "tr": "values-tr",
-    "ar": "values-ar", "fa": "values-fa", "hi": "values-hi", "id": "values-in", "vi": "values-vi",
-    "zh-CN": "values-zh-rCN", "ja": "values-ja", "ko": "values-ko",
+    "ar": "values-ar", "fa": "values-fa", "hi": "values-hi", "id": "values-in", "ms": "values-ms", "vi": "values-vi",
+    "th": "values-th", "zh-CN": "values-zh-rCN", "zh-TW": "values-zh-rTW", "ja": "values-ja", "ko": "values-ko",
+    "fil": "values-fil", "ur": "values-ur",
 }
 
 

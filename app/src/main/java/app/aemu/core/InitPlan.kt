@@ -135,14 +135,15 @@ object InitPlan {
                 it.copy(waitSocket = r.waitSocket, delayMs = r.delayMs, restart = r.restart)
             } ?: continue
             if (!File(root, def.argv.first().removePrefix("/")).isFile) continue
-            out.add(def)
+            out.add(normalHealthd(def))
         }
         // вендорские демоны: system_server прошивок Samsung/HTC/LG ждёт их службы (tvout и т.п.)
         val known = ORDER.flatMap { listOf(it.name) + it.alt }.toSet() + setOf("surfaceflinger")
         val extras = rc.services.values.filter { sv ->
             val bin = sv.argv.first()
             val base = bin.substringAfterLast('/')
-            !sv.disabled && !sv.oneshot && sv.cls != "charger" && sv.name !in known && sv.name !in SKIP && base !in SKIP_BIN &&
+            !sv.disabled && !sv.oneshot && sv.cls != "charger" && !isLpm(sv.name, base, sv.cls) &&
+                sv.name !in known && sv.name !in SKIP && base !in SKIP_BIN &&
                 // префиксом совпадают только явные «xxx_» и длинные имена: иначе «sh» отсекал бы shelld (MIUI) и т.п.
                 SKIP_BIN.none { base == it || ((it.endsWith("_") || it.length >= 5) && base.startsWith(it)) } && !base.endsWith(".sh") &&
                 (bin.startsWith("/system/bin/") || bin.startsWith("/system/xbin/") || bin.startsWith("/vendor/bin/")) &&
@@ -155,8 +156,29 @@ object InitPlan {
     }
 
     /** Службы init, которые не запускаем: их роль играет хост, или они лезут в железо. */
+    /**
+     * Samsung low-power-mode (offline charging) daemons: "lpm", "playlpm", "lpmkey", ... The service name, its binary
+     * and its init class can each differ between devices (e.g. service "xyz" running /system/bin/lpm), so match all three.
+     */
+    private val LPM = Regex("""(?i)^(play)?lpm([_.-]?\w*)?$""")
+    private fun isLpm(name: String, base: String, cls: String?) =
+        LPM.matches(name) || LPM.matches(base) || cls.equals("lpm", true)
+
     /** Services saved in older imported images that must never run (crash on null binder client). */
     val NEVER_START = setOf("common_time", "tf_daemon")
+
+    private val HEALTHD_MODE_FLAGS = Regex("^-[rcn]+$")
+
+    /**
+     * healthd flags select other modes: -r recovery, -c charger, -n "do not register with servicemanager". A ROM's rc
+     * can leave such a definition under the name "healthd" (it then overrides the normal one), and healthd started that
+     * way never publishes "batteryproperties", so system_server dies in BatteryService. The boot plan needs the plain
+     * daemon.
+     */
+    fun normalHealthd(s: GuestService): GuestService =
+        if (s.name == "healthd" && s.argv.drop(1).any { HEALTHD_MODE_FLAGS.matches(it) })
+            s.copy(argv = s.argv.take(1) + s.argv.drop(1).filterNot { HEALTHD_MODE_FLAGS.matches(it) })
+        else s
 
     private val SKIP = setOf(
         "ueventd", "vold", "rild", "ril-daemon", "adbd", "debuggerd", "debuggerd64", "console", "dbus", "bluetoothd",
@@ -168,7 +190,7 @@ object InitPlan {
     )
     private val SKIP_BIN = setOf(
         "logwrapper", "sh", "rild", "vold", "wpa_supplicant", "dhcpcd", "bluetoothd", "hciattach", "btld", "adbd",
-        "sdcard", "gpsd", "gps", "akmd", "orientationd", "geomagneticd", "sensor", "charging", "playlpm", "bootanimation",
+        "sdcard", "gpsd", "gps", "akmd", "orientationd", "geomagneticd", "sensor", "charging", "playlpm", "lpm", "lpmkey", "bootanimation",
         "rmt_storage", "qmuxd", "netmgrd", "thermald", "mpdecision", "thermal-engine", "fm_", "wifi", "wifi_", "gps_", "hostapd", "mediaserver",
         "common_time", "tf_daemon", "drexe", "npsmobex", "immvibed", "cbd", "smdexe", "ddexe", "mdm_helper", "rilproxy",
         // Qualcomm: камера, TrustZone, модем — лезут в /dev своего железа и сыплют ошибками

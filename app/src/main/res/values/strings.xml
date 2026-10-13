@@ -306,6 +306,8 @@
     <string name="vm_export_failed">Export failed. Fully shut down all VMs and check destination space and access. If a partial file remains, delete it before retrying.</string>
     <string name="vs_motion">Host motion sensors</string>
     <string name="vs_motion_sub">Forward available accelerometer, gyroscope and magnetic-field sensors (Android 2.2–7.1). When off, Rotate screen simulates gravity instead; guest auto-rotate must be enabled. Experimental; takes effect after a full VM restart. Paused while the VM screen is hidden.</string>
+    <string name="vs_no_sensors">Disable all sensors</string>
+    <string name="vs_no_sensors_sub">Run the guest without any sensors, for firmware whose sensor service crashes under emulation. On by default for Android Wear SDK builds on API 24+, where it is needed to boot. Takes effect at the next full boot.</string>
     <string name="vs_gyro_lock">Lock gyroscope orientation</string>
     <string name="vs_gyro_lock_sub">0° / 180° pins the host motion sensors to a fixed orientation: gravity stays put and the gyroscope reads zero, so the guest never auto-rotates. No gyroscope hides the gyroscope from the guest completely (use it if the gyro misbehaves); accelerometer and magnetometer stay real. Takes effect after a full VM restart.</string>
     <string name="vs_gyro_disabled">Disabled</string>

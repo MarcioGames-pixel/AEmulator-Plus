@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">حساسیت: %1$d dp در هر گام (کمتر یعنی سریع‌تر)</string>
     <string name="nav_trackball_waiting">هنوز اتصالی به ترک‌بال مهمان نیست</string>
     <string name="nav_trackball_recovery">ریکاوری: از حالت کلیدهای جهت‌نما استفاده کنید</string>
+    <string name="nav_go_to_recovery">رفتن به recovery</string>
+    <string name="vs_bluetooth">بلوتوث میزبان (آزمایشی)</string>
+    <string name="vs_bluetooth_sub">به مهمان اجازه می‌دهد از طریق گوشی دستگاه‌های بلوتوث را جست‌وجو کند، فهرست جفت‌شده‌ها را ببیند و با آن‌ها ارتباط برقرار کند: سریال کلاسیک (RFCOMM) و Bluetooth LE ‏(GATT). به مجوز بلوتوث و راه‌اندازی مجدد کامل ماشین مجازی نیاز دارد. HCI خام نیست: مهمان آداپتور گوشی را از طریق یک پل می‌بیند، بنابراین هدست‌ها (پروفایل‌های صوتی) پشتیبانی نمی‌شوند.</string>
+    <string name="bluetooth_permission_denied">مجوز بلوتوث رد شد: مهمان بدون بلوتوث میزبان بوت می‌شود.</string>
 </resources>

@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">灵敏度：每步 %1$d dp（数值越小越快）</string>
     <string name="nav_trackball_waiting">尚未连接客户机轨迹球</string>
     <string name="nav_trackball_recovery">Recovery：请使用方向键模式</string>
+    <string name="nav_go_to_recovery">进入 recovery</string>
+    <string name="vs_bluetooth">主机蓝牙(实验性)</string>
+    <string name="vs_bluetooth_sub">允许客户机通过手机扫描蓝牙设备、列出已配对设备并与之通信:经典串口(RFCOMM)和低功耗蓝牙(GATT)。需要蓝牙权限并完全重启虚拟机。不是原始 HCI:客户机通过桥接看到手机的适配器,因此不支持耳机(音频配置文件)。</string>
+    <string name="bluetooth_permission_denied">蓝牙权限被拒绝:客户机将在没有主机蓝牙的情况下启动。</string>
 </resources>

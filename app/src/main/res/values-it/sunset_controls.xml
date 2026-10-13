@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Sensibilità: %1$d dp per passo (più basso è più veloce)</string>
     <string name="nav_trackball_waiting">Ancora nessuna connessione al trackball dell’ospite</string>
     <string name="nav_trackball_recovery">Recovery: usa la modalità tasti freccia</string>
+    <string name="nav_go_to_recovery">Vai alla recovery</string>
+    <string name="vs_bluetooth">Bluetooth dell’host (sperimentale)</string>
+    <string name="vs_bluetooth_sub">Consente all’ospite di cercare, elencare i dispositivi associati e comunicare con dispositivi Bluetooth tramite il telefono: seriale classico (RFCOMM) e Bluetooth LE (GATT). Richiede l’autorizzazione Bluetooth e un riavvio completo della VM. Non è HCI grezzo: l’ospite vede l’adattatore del telefono tramite un bridge, quindi le cuffie (profili audio) non sono supportate.</string>
+    <string name="bluetooth_permission_denied">Autorizzazione Bluetooth negata: l’ospite si avvierà senza Bluetooth dell’host.</string>
 </resources>

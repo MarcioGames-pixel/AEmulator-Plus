@@ -1,5 +1,6 @@
 package app.aemu.importer
 
+import app.aemu.core.ImportWarnings
 import android.content.Context
 import app.aemu.core.Engine
 import app.aemu.core.GuestImage
@@ -66,13 +67,13 @@ class Analyzer(private val ctx: Context, private val paths: VmPaths, private val
             ?: when { api <= 13 -> "/mnt/sdcard"; api <= 16 -> "/storage/sdcard0"; else -> "/storage/emulated/legacy" }
 
         val warnings = ArrayList<String>()
-        if (noBuildProp) warnings += "No system/build.prop: Android version was inferred from the system tree."
-        if (rcFiles.isEmpty() && dhdBcp == null) warnings += "No boot.img in firmware: boot plan and BOOTCLASSPATH were guessed."
+        if (noBuildProp) warnings += ImportWarnings.NO_BUILD_PROP
+        if (rcFiles.isEmpty() && dhdBcp == null) warnings += ImportWarnings.NO_BOOT_IMG
         if (api >= 19 && plan.none { it.name == "healthd" })
-            warnings += "No healthd in the boot plan (no /sbin/healthd; ramdisk missing from the import?): system_server will die in BatteryService."
-        if (abi.startsWith("arm64")) warnings += "64-bit firmware: only 32-bit ARM is supported."
-        if (abi.startsWith("x86") || abi.startsWith("mips")) warnings += "Firmware is not ARM ($abi) and will not run."
-        if (api >= 21) warnings += "Android ${release}: support is experimental (ART, SELinux)."
+            warnings += ImportWarnings.NO_HEALTHD
+        if (abi.startsWith("arm64")) warnings += ImportWarnings.ARM64
+        if (abi.startsWith("x86") || abi.startsWith("mips")) warnings += ImportWarnings.notArm(abi)
+        if (api >= 21) warnings += ImportWarnings.experimental(release)
 
         val density = all["ro.sf.lcd_density"]?.toIntOrNull() ?: 240
         val engine = Engine.forApi(api)

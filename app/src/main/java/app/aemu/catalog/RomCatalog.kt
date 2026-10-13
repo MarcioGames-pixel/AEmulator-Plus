@@ -28,7 +28,7 @@ object RomCatalogParser {
         val warnings = linkedSetOf<Int>()
         var started = false
         text.removePrefix("\uFEFF").lineSequence().forEachIndexed { index, raw ->
-            require(index < 10_000) { "Catalog exceeds 10000 lines" }
+            if (index >= 10_000) throw app.aemu.core.LocalizedIllegalArgumentException("Catalog exceeds 10000 lines", app.aemu.R.string.catalog_err_too_many_lines)
             val line = raw.trim()
             if (line.isEmpty()) return@forEachIndexed
             if (line.startsWith('#')) {

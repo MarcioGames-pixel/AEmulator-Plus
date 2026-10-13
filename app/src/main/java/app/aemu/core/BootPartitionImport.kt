@@ -1,6 +1,7 @@
 /* AEmulator Sunset addition, 2026-10-03. GPL-3.0; see LICENSE. */
 package app.aemu.core
 
+import app.aemu.R
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -20,7 +21,7 @@ internal object BootPartitionImport {
             lease.acquire()
             GuestStorageWriters.requireIdle(ctx)
             val paths = VmPaths(ctx, id)
-            val old = ImageStore.get(ctx, id) ?: error("VM no longer exists")
+            val old = ImageStore.get(ctx, id) ?: localizedError("VM no longer exists", R.string.err_vm_no_longer_exists)
             require(!present(paths.dir)) { "VM already has a boot partition" }
             require(!Files.exists(File(paths.dir, "boot.img").toPath(), NOFOLLOW_LINKS) &&
                 !Files.exists(File(paths.root, "init.rc").toPath(), NOFOLLOW_LINKS)) { "Conflicting boot path" }
@@ -29,10 +30,10 @@ internal object BootPartitionImport {
             val name = ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
                 if (it.moveToFirst()) it.getString(0) else null
             } ?: "boot.img"
-            val bytes = (ctx.contentResolver.openInputStream(uri) ?: error("Cannot open boot image")).use {
+            val bytes = (ctx.contentResolver.openInputStream(uri) ?: localizedError("Cannot open boot image", R.string.err_cannot_open_boot_image)).use {
                 BootPartitionSource.read(it, name, ctx.cacheDir)
             }
-            val entries = BootImage.ramdisk(bytes) ?: error("No supported boot ramdisk found")
+            val entries = BootImage.ramdisk(bytes) ?: localizedError("No supported boot ramdisk found", R.string.err_no_supported_boot_ramdisk_found)
             require(entries.any { it.name == "init.rc" && it.mode and 0xf000 == 0x8000 && it.data.isNotEmpty() }) { "Boot ramdisk has no init.rc" }
             val selected = validate(entries)
             val created = ArrayList<File>()
@@ -41,13 +42,13 @@ internal object BootPartitionImport {
                 // Files before links; no existing file is overwritten, including compatibility files.
                 for (entry in selected.sortedBy { if (it.mode and 0xf000 == 0xa000) 1 else 0 }) {
                     val file = File(paths.root, entry.name)
-                    var parent = file.parentFile ?: error("Invalid ramdisk path")
+                    var parent = file.parentFile ?: localizedError("Invalid ramdisk path", R.string.err_invalid_ramdisk_path)
                     val missing = ArrayList<File>()
                     while (parent != paths.root) {
                         require(parent.toPath().normalize().startsWith(paths.root.toPath()))
                         require(!Files.isSymbolicLink(parent.toPath())) { "Ramdisk path traverses an existing link" }
                         if (!parent.exists()) missing += parent else require(parent.isDirectory)
-                        parent = parent.parentFile ?: error("Invalid ramdisk parent")
+                        parent = parent.parentFile ?: localizedError("Invalid ramdisk parent", R.string.err_invalid_ramdisk_parent)
                     }
                     if (Files.exists(file.toPath(), NOFOLLOW_LINKS)) continue
                     for (dir in missing.asReversed()) { check(dir.mkdir()); created += dir }

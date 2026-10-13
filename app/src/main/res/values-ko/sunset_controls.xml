@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">감도: 한 단계당 %1$d dp(낮을수록 빠름)</string>
     <string name="nav_trackball_waiting">아직 게스트 트랙볼에 연결되지 않았습니다</string>
     <string name="nav_trackball_recovery">복구: 방향키 모드를 사용하세요</string>
+    <string name="nav_go_to_recovery">복구 모드로 이동</string>
+    <string name="vs_bluetooth">호스트 Bluetooth(실험적)</string>
+    <string name="vs_bluetooth_sub">게스트가 휴대전화를 통해 Bluetooth 기기를 검색하고, 페어링된 기기 목록을 보고, 통신할 수 있게 합니다. 클래식 시리얼(RFCOMM)과 Bluetooth LE(GATT)를 지원합니다. Bluetooth 권한과 VM 전체 재시작이 필요합니다. 원시 HCI가 아닙니다. 게스트는 브리지를 통해 휴대전화 어댑터를 보므로 헤드셋(오디오 프로필)은 지원되지 않습니다.</string>
+    <string name="bluetooth_permission_denied">Bluetooth 권한이 거부되었습니다. 게스트는 호스트 Bluetooth 없이 부팅됩니다.</string>
 </resources>

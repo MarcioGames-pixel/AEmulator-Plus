@@ -24,4 +24,8 @@
     <string name="nav_sensitivity">Empfindlichkeit: %1$d dp pro Schritt (niedriger ist schneller)</string>
     <string name="nav_trackball_waiting">Noch keine Trackball-Verbindung zum Gast</string>
     <string name="nav_trackball_recovery">Recovery: Pfeiltasten-Modus verwenden</string>
+    <string name="nav_go_to_recovery">Zur Recovery wechseln</string>
+    <string name="vs_bluetooth">Host-Bluetooth (experimentell)</string>
+    <string name="vs_bluetooth_sub">Lässt den Gast Bluetooth-Geräte über das Telefon suchen, auflisten und mit ihnen kommunizieren: klassisch seriell (RFCOMM) und Bluetooth LE (GATT). Erfordert die Bluetooth-Berechtigung und einen vollständigen Neustart der VM. Kein rohes HCI: Der Gast sieht den Telefonadapter über eine Bridge, daher werden Headsets (Audioprofile) nicht unterstützt.</string>
+    <string name="bluetooth_permission_denied">Bluetooth-Berechtigung verweigert: Der Gast startet ohne Host-Bluetooth.</string>
 </resources>

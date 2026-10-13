@@ -43,6 +43,8 @@ data class VmSettings(
     /** Experimental host Bluetooth passthrough (scan, RFCOMM, GATT); applies at the next full VM boot. */
     val bluetooth: Boolean = false,
     val motionSensors: Boolean = false,
+    /** Run the guest without any sensors; null = automatic (on for Nougat+ Wear SDK builds, see [SensorHalApi.crashesWithHostSensors]). */
+    val disableSensors: Boolean? = null,
     /** With host motion sensors: 0 = disabled (real orientation), 1 = locked to 0°, 2 = locked to 180°, 3 = no gyroscope (see [GyroLock]). */
     val gyroLock: Int = GyroLock.DISABLED,
     val hostResolution: Boolean = false,
@@ -102,7 +104,7 @@ data class VmSettings(
         .put("camera", camera)
         .put("microphone", microphone)
         .put("bluetooth", bluetooth)
-        .put("motionSensors", motionSensors).put("gyroLock", gyroLock).put("hostResolution", hostResolution)
+        .put("motionSensors", motionSensors).put("disableSensors", disableSensors).put("gyroLock", gyroLock).put("hostResolution", hostResolution)
         .put("skipSetupWizard", skipSetupWizard)
         .put("disableGoogleApps", disableGoogleApps)
         .put("ramMb", ramMb).put("radio", radio).put("imei", imei).put("serial", serial).put("kernel", kernel).put("baseband", baseband).put("networkType", networkType).put("qemuArgs", qemuArgs).put("straceServices", straceServices)
@@ -198,6 +200,7 @@ data class VmSettings(
                 microphone = o.optBoolean("microphone", d.microphone),
                 bluetooth = o.optBoolean("bluetooth", d.bluetooth),
                 motionSensors = o.optBoolean("motionSensors", false),
+                disableSensors = if (o.has("disableSensors")) o.optBoolean("disableSensors") else null,
                 gyroLock = GyroLock.sanitize(o.optInt("gyroLock", GyroLock.DISABLED)),
                 hostResolution = o.optBoolean("hostResolution", false),
                 skipSetupWizard = o.optBoolean("skipSetupWizard", d.skipSetupWizard),
@@ -309,6 +312,10 @@ data class GuestImage(
     val oneTimeNote: String = "",
 ) {
     val displayVersion: String get() = "Android $release (API $api)" + if (buildId.isNotBlank()) " (Build $buildId)" else ""
+
+    /** True when the guest runs without any sensors (the user's choice, else automatic; see [SensorHalApi.sensorsOff]). */
+    val sensorsOff: Boolean get() = sensorsOff(settings)
+    fun sensorsOff(s: VmSettings): Boolean = SensorHalApi.sensorsOff(s.disableSensors, api, skin, brand, model)
 
     /** Движок с учётом выбора пользователя. */
     fun effective(): GuestImage = copy(engine = if (settings.legacyEngine && api < 14) Engine.GB else Engine.KK)
