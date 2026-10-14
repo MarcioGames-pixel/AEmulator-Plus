@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Skjul menyknappen</string>
+    <string name="vs_hide_menu_sub">Skjul …-knappen. Telefonens Tilbake-knapp eller tilbakebevegelse åpner emulatormenyen i stedet for å sende Tilbake til Android. Gjestens navigasjonsknapper styrer fortsatt Android.</string>
+    <string name="vs_vibration">Gjestevibrasjon</string>
+    <string name="vs_vibration_sub">Videresend eldre gjestevibrasjon til telefonen. Gjelder ved neste oppstart; hver puls begrenses til 60 sekunder.</string>
+    <string name="nav_buttons">Navigasjonsknapper</string>
+    <string name="nav_order">Knapperekkefølge (fra venstre til høyre)</string>
+    <string name="nav_earlier">Tidligere</string>
+    <string name="nav_later">Senere</string>
+    <string name="nav_reset">Tilbakestill knapper</string>
+    <string name="nav_search">Søk</string>
+    <string name="nav_power">Av/på</string>
+    <string name="nav_go_to_recovery">Gå til recovery</string>
+    <string name="nav_volume_down">Volum ned</string>
+    <string name="nav_volume_up">Volum opp</string>
+    <string name="nav_up">D-pad opp</string>
+    <string name="nav_down">D-pad ned</string>
+    <string name="nav_left">D-pad venstre</string>
+    <string name="nav_right">D-pad høyre</string>
+    <string name="nav_center">D-pad midten</string>
+    <string name="nav_trackball">Styrekule</string>
+    <string name="nav_trackball_sub">Sveip i sirkelen over navigasjonslinjen for å rulle; trykk for å velge.</string>
+    <string name="nav_dpad_mode">Piltastmodus</string>
+    <string name="nav_dpad_sub">Av: ekte relative styrekulehendelser for gjesteapper. På: D-pad-tastetrykk i stedet. Sender ikke begge.</string>
+    <string name="nav_sensitivity">Følsomhet: %1$d dp per steg (lavere er raskere)</string>
+    <string name="nav_trackball_waiting">Ingen styrekuletilkobling fra gjesten ennå</string>
+    <string name="nav_trackball_recovery">Recovery: bruk piltastmodus</string>
+    <string name="vs_bluetooth">Vertens Bluetooth (eksperimentelt)</string>
+    <string name="vs_bluetooth_sub">La gjesten skanne, liste parkoblede enheter og kommunisere med Bluetooth-enheter via telefonen: klassisk seriell (RFCOMM) og Bluetooth LE (GATT). Krever Bluetooth-tillatelse og en full omstart av VM-en. Ikke rå HCI: gjesten ser telefonens adapter gjennom en bro, så hodetelefoner (lydprofiler) støttes ikke.</string>
+    <string name="bluetooth_permission_denied">Bluetooth-tillatelse avslått: gjesten starter uten Bluetooth fra verten.</string>
+</resources>

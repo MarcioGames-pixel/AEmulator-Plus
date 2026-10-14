@@ -67,6 +67,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -134,7 +135,10 @@ internal fun Library3D(
     if (images.isEmpty()) return
     val ctx = LocalContext.current
     val motion = remember { animationsOn(ctx) }
-    val pager = rememberPagerState { images.size }
+    // The pager reads its page count, keys and page content lazily while it measures. When the list changes (an import
+    // just finished, a firmware was deleted) those reads must all see the same, newest list, never an older one.
+    val latest by rememberUpdatedState(images)
+    val pager = rememberPagerState { latest.size }
     val tilt = rememberDeviceTilt(motion)
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -146,6 +150,12 @@ internal fun Library3D(
     // phones rise into place when the library opens
     val entrance = remember { Animatable(if (motion) 0f else 1f) }
     LaunchedEffect(Unit) { if (motion) entrance.animateTo(1f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow)) }
+    // keep the pager inside the list when it gets shorter
+    LaunchedEffect(images.size) {
+        if (pager.currentPage > images.lastIndex) pager.scrollToPage(images.lastIndex)
+        launching = -1
+        flipped.keys.retainAll(images.map { it.id }.toSet())
+    }
     LaunchedEffect(pager.settledPage) { if (motion) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
 
     val current = images.getOrNull(pager.currentPage) ?: images.first()
@@ -179,10 +189,10 @@ internal fun Library3D(
                     contentPadding = PaddingValues(horizontal = side),
                     pageSpacing = 4.dp,
                     beyondViewportPageCount = 2,
-                    key = { images[it].id },
+                    key = { latest.getOrNull(it)?.id ?: "page-$it" },
                     modifier = Modifier.fillMaxWidth(),
                 ) { page ->
-                    val img = images[page]
+                    val img = latest.getOrNull(page) ?: return@HorizontalPager
                     val offset = ((pager.currentPage - page) + pager.currentPageOffsetFraction).coerceIn(-1.5f, 1.5f)
                     val front = 1f - abs(offset).coerceAtMost(1f)
                     val isFlipped = flipped[img.id] == true

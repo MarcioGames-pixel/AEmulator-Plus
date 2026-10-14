@@ -153,7 +153,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Library(model: LibraryModel) {
-    SocCompatibilityNotice()
     val images by model.images.collectAsState()
     val imp by model.import.collectAsState()
     val ctx = LocalContext.current
@@ -256,9 +255,11 @@ fun Library(model: LibraryModel) {
                         ImportCard(imp, onCancel = model::cancelImport, onDismiss = model::dismissImport)
                     }
                 }
-                // imported firmwares first, then the containers made from them
+                // imported firmwares first, then the containers made from them; remembered so the carousel is not
+                // handed a new list on every progress tick of a running import
+                val ordered = remember(images) { images.filter { it.baseId.isEmpty() } + images.filter { it.baseId.isNotEmpty() } }
                 Library3D(
-                    images.filter { it.baseId.isEmpty() } + images.filter { it.baseId.isNotEmpty() },
+                    ordered,
                     activeVmId,
                     baseNameOf = { img -> images.firstOrNull { it.id == img.baseId }?.name },
                     onStart = { img, lowPower -> VmActivity.start(ctx, img.id, lowPower = lowPower) },

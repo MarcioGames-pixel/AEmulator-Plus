@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Fshih butonin e menusë</string>
+    <string name="vs_hide_menu_sub">Fshih butonin …. Butoni Prapa i telefonit ose gjesti prapa hap menunë e emulatorit në vend që t’i dërgojë Prapa Android-it. Butonat e navigimit të mysafirit vazhdojnë ta kontrollojnë Android-in.</string>
+    <string name="vs_vibration">Dridhja e mysafirit</string>
+    <string name="vs_vibration_sub">Përcjell te telefoni dridhjen e vjetër të mysafirit. Aplikohet në nisjen e radhës; çdo impuls kufizohet në 60 sekonda.</string>
+    <string name="nav_buttons">Butonat e navigimit</string>
+    <string name="nav_order">Radha e butonave (nga e majta në të djathtë)</string>
+    <string name="nav_earlier">Më herët</string>
+    <string name="nav_later">Më vonë</string>
+    <string name="nav_reset">Rivendos butonat</string>
+    <string name="nav_search">Kërko</string>
+    <string name="nav_power">Ndezja</string>
+    <string name="nav_go_to_recovery">Shko te recovery</string>
+    <string name="nav_volume_down">Ul volumin</string>
+    <string name="nav_volume_up">Ngre volumin</string>
+    <string name="nav_up">D-pad lart</string>
+    <string name="nav_down">D-pad poshtë</string>
+    <string name="nav_left">D-pad majtas</string>
+    <string name="nav_right">D-pad djathtas</string>
+    <string name="nav_center">D-pad qendër</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Rrëshqitni gishtin mbi rrethin sipër shiritit të navigimit për ta rrotulluar; trokitni për të zgjedhur.</string>
+    <string name="nav_dpad_mode">Modaliteti i shigjetave</string>
+    <string name="nav_dpad_sub">Çaktivizuar: ngjarje reale relative trackball për aplikacionet e mysafirit. Aktivizuar: shtypje tastesh D-pad në vend të tyre. Nuk dërgon të dyja.</string>
+    <string name="nav_sensitivity">Ndjeshmëria: %1$d dp për hap (më e ulët është më e shpejtë)</string>
+    <string name="nav_trackball_waiting">Ende nuk ka lidhje trackball me mysafirin</string>
+    <string name="nav_trackball_recovery">Recovery: përdorni modalitetin e shigjetave</string>
+    <string name="vs_bluetooth">Bluetooth i pritësit (eksperimental)</string>
+    <string name="vs_bluetooth_sub">Lejon mysafirin të skanojë, të listojë çiftimet dhe të komunikojë me pajisje Bluetooth përmes telefonit: serial klasik (RFCOMM) dhe Bluetooth LE (GATT). Kërkon leje Bluetooth dhe një rinisje të plotë të VM-së. Jo HCI i papërpunuar: mysafiri e sheh adaptorin e telefonit përmes një ure, ndaj kufjet (profilet audio) nuk mbështeten.</string>
+    <string name="bluetooth_permission_denied">Leja e Bluetooth u refuzua: mysafiri do të niset pa Bluetooth të pritësit.</string>
+</resources>

@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Απόκρυψη κουμπιού μενού</string>
+    <string name="vs_hide_menu_sub">Απόκρυψη του κουμπιού …. Το κουμπί Πίσω του τηλεφώνου ή η χειρονομία πίσω ανοίγει το μενού του εξομοιωτή αντί να στέλνει Πίσω στο Android. Τα κουμπιά πλοήγησης του επισκέπτη εξακολουθούν να ελέγχουν το Android.</string>
+    <string name="vs_vibration">Δόνηση επισκέπτη</string>
+    <string name="vs_vibration_sub">Προώθηση της παλιάς δόνησης του επισκέπτη στο τηλέφωνο. Εφαρμόζεται στην επόμενη εκκίνηση· κάθε παλμός περιορίζεται στα 60 δευτερόλεπτα.</string>
+    <string name="nav_buttons">Κουμπιά πλοήγησης</string>
+    <string name="nav_order">Σειρά κουμπιών (από αριστερά προς τα δεξιά)</string>
+    <string name="nav_earlier">Νωρίτερα</string>
+    <string name="nav_later">Αργότερα</string>
+    <string name="nav_reset">Επαναφορά κουμπιών</string>
+    <string name="nav_search">Αναζήτηση</string>
+    <string name="nav_power">Λειτουργία</string>
+    <string name="nav_go_to_recovery">Μετάβαση σε recovery</string>
+    <string name="nav_volume_down">Μείωση έντασης</string>
+    <string name="nav_volume_up">Αύξηση έντασης</string>
+    <string name="nav_up">D-pad πάνω</string>
+    <string name="nav_down">D-pad κάτω</string>
+    <string name="nav_left">D-pad αριστερά</string>
+    <string name="nav_right">D-pad δεξιά</string>
+    <string name="nav_center">D-pad κέντρο</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Σύρετε στον κύκλο πάνω από τη γραμμή πλοήγησης για κύλιση· πατήστε για επιλογή.</string>
+    <string name="nav_dpad_mode">Λειτουργία πλήκτρων βελών</string>
+    <string name="nav_dpad_sub">Ανενεργή: πραγματικά σχετικά συμβάντα trackball για τις εφαρμογές επισκέπτη. Ενεργή: πατήματα πλήκτρων D-pad. Δεν στέλνει και τα δύο.</string>
+    <string name="nav_sensitivity">Ευαισθησία: %1$d dp ανά βήμα (χαμηλότερο = ταχύτερο)</string>
+    <string name="nav_trackball_waiting">Δεν υπάρχει ακόμη σύνδεση trackball επισκέπτη</string>
+    <string name="nav_trackball_recovery">Recovery: χρησιμοποιήστε τη λειτουργία πλήκτρων βελών</string>
+    <string name="vs_bluetooth">Bluetooth κεντρικού υπολογιστή (πειραματικό)</string>
+    <string name="vs_bluetooth_sub">Επιτρέπει στον επισκέπτη να σαρώνει, να εμφανίζει τη λίστα ζευγαρωμένων και να επικοινωνεί με συσκευές Bluetooth μέσω του τηλεφώνου: κλασικό σειριακό (RFCOMM) και Bluetooth LE (GATT). Απαιτεί άδεια Bluetooth και πλήρη επανεκκίνηση του VM. Όχι ακατέργαστο HCI: ο επισκέπτης βλέπει τον προσαρμογέα του τηλεφώνου μέσω γέφυρας, επομένως τα ακουστικά (προφίλ ήχου) δεν υποστηρίζονται.</string>
+    <string name="bluetooth_permission_denied">Η άδεια Bluetooth απορρίφθηκε: ο επισκέπτης θα εκκινήσει χωρίς το Bluetooth του κεντρικού υπολογιστή.</string>
+</resources>

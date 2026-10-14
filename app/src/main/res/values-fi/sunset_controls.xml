@@ -1,0 +1,32 @@
+<!-- Finnish (fi) translation. Keys mirror values/sunset_controls.xml. -->
+<resources>
+    <string name="vs_hide_menu">Piilota valikkopainike</string>
+    <string name="vs_hide_menu_sub">Piilottaa …-painikkeen. Puhelimen Takaisin-painike tai takaisin-ele avaa sen sijaan emulaattorin valikon eikä lähetä Takaisin-komentoa Androidille. Vieraan navigointipainikkeet ohjaavat edelleen Androidia.</string>
+    <string name="vs_vibration">Vieraan värinä</string>
+    <string name="vs_vibration_sub">Välittää vanhan vieraan värinän puhelimelle. Tulee voimaan seuraavalla käynnistyksellä; kunkin pulssin enimmäiskesto on 60 sekuntia.</string>
+    <string name="nav_buttons">Navigointipainikkeet</string>
+    <string name="nav_order">Painikkeiden järjestys (vasemmalta oikealle)</string>
+    <string name="nav_earlier">Aiemmaksi</string>
+    <string name="nav_later">Myöhemmäksi</string>
+    <string name="nav_reset">Palauta painikkeet</string>
+    <string name="nav_search">Haku</string>
+    <string name="nav_power">Virta</string>
+    <string name="nav_go_to_recovery">Siirry recoveryyn</string>
+    <string name="nav_volume_down">Äänenvoimakkuus alas</string>
+    <string name="nav_volume_up">Äänenvoimakkuus ylös</string>
+    <string name="nav_up">D-pad ylös</string>
+    <string name="nav_down">D-pad alas</string>
+    <string name="nav_left">D-pad vasemmalle</string>
+    <string name="nav_right">D-pad oikealle</string>
+    <string name="nav_center">D-pad keskelle</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Vierittämällä navigointipalkin yläpuolella olevaa ympyrää pyöräytät palloa; napauttamalla valitset.</string>
+    <string name="nav_dpad_mode">Nuolinäppäintila</string>
+    <string name="nav_dpad_sub">Pois: aidot suhteelliset trackball-tapahtumat vieraan sovelluksille. Päällä: D-pad-näppäinpainallukset sen sijaan. Molempia ei lähetetä.</string>
+    <string name="nav_sensitivity">Herkkyys: %1$d dp askelta kohti (pienempi on nopeampi)</string>
+    <string name="nav_trackball_waiting">Vierailla ei ole vielä trackball-yhteyttä</string>
+    <string name="nav_trackball_recovery">Recovery: käytä nuolinäppäintilaa</string>
+    <string name="vs_bluetooth">Isännän Bluetooth (kokeellinen)</string>
+    <string name="vs_bluetooth_sub">Antaa vieraan etsiä Bluetooth-laitteita, listata paritetut laitteet ja keskustella niiden kanssa puhelimen kautta: perinteinen sarjaportti (RFCOMM) ja Bluetooth LE (GATT). Vaatii Bluetooth-luvan ja järjestelmän täyden uudelleenkäynnistyksen. Ei raaka HCI: vieras näkee puhelimen sovittimen sillan kautta, joten kuulokkeita (ääniprofiileja) ei tueta.</string>
+    <string name="bluetooth_permission_denied">Bluetooth-lupa evätty: vieras käynnistyy ilman isännän Bluetoothia.</string>
+</resources>

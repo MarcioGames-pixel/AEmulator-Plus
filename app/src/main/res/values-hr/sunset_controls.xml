@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Sakrij tipku izbornika</string>
+    <string name="vs_hide_menu_sub">Sakriva tipku …. Tipka Natrag na telefonu ili gesta za povratak umjesto slanja Natrag Androidu otvara izbornik emulatora. Navigacijske tipke gosta i dalje upravljaju Androidom.</string>
+    <string name="vs_vibration">Vibracija gosta</string>
+    <string name="vs_vibration_sub">Prosljeđuje staru vibraciju gosta na telefon. Primjenjuje se pri sljedećem pokretanju; svaki impuls ograničen je na 60 sekundi.</string>
+    <string name="nav_buttons">Navigacijske tipke</string>
+    <string name="nav_order">Redoslijed tipki (slijeva nadesno)</string>
+    <string name="nav_earlier">Ranije</string>
+    <string name="nav_later">Kasnije</string>
+    <string name="nav_reset">Vrati tipke</string>
+    <string name="nav_search">Traži</string>
+    <string name="nav_power">Uključivanje</string>
+    <string name="nav_go_to_recovery">Idi u recovery</string>
+    <string name="nav_volume_down">Glasnoća −</string>
+    <string name="nav_volume_up">Glasnoća +</string>
+    <string name="nav_up">D-pad gore</string>
+    <string name="nav_down">D-pad dolje</string>
+    <string name="nav_left">D-pad lijevo</string>
+    <string name="nav_right">D-pad desno</string>
+    <string name="nav_center">D-pad sredina</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Povucite prstom po krugu iznad navigacijske trake za kotrljanje; dodirnite za odabir.</string>
+    <string name="nav_dpad_mode">Način strelica</string>
+    <string name="nav_dpad_sub">Isključeno: pravi relativni trackball događaji za aplikacije gosta. Uključeno: umjesto toga pritisci D-pad tipki. Ne šalje oboje.</string>
+    <string name="nav_sensitivity">Osjetljivost: %1$d dp po koraku (manje je brže)</string>
+    <string name="nav_trackball_waiting">Još nema trackball veze s gostom</string>
+    <string name="nav_trackball_recovery">Recovery: koristite način strelica</string>
+    <string name="vs_bluetooth">Bluetooth domaćina (eksperimentalno)</string>
+    <string name="vs_bluetooth_sub">Omogućuje gostu traženje, popis uparenih i komunikaciju s Bluetooth uređajima preko telefona: klasični serijski (RFCOMM) i Bluetooth LE (GATT). Treba dopuštenje za Bluetooth i potpuno ponovno pokretanje virtualnog stroja. Nije sirovi HCI: gost vidi adapter telefona preko mosta pa slušalice (audio profili) nisu podržane.</string>
+    <string name="bluetooth_permission_denied">Dopuštenje za Bluetooth je odbijeno: gost će se pokrenuti bez Bluetootha domaćina.</string>
+</resources>

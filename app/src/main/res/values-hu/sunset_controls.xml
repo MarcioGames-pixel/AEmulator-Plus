@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Menügomb elrejtése</string>
+    <string name="vs_hide_menu_sub">A … gomb elrejtése. A telefon Vissza gombja vagy a vissza kézmozdulat az emulátor menüjét nyitja meg, ahelyett hogy Vissza parancsot küldene az Androidnak. A vendég navigációs gombjai továbbra is az Androidot vezérlik.</string>
+    <string name="vs_vibration">Vendég rezgése</string>
+    <string name="vs_vibration_sub">A régi vendég rezgésparancsok továbbítása a telefonnak. A következő indításkor lép érvénybe; minden impulzus legfeljebb 60 másodperces.</string>
+    <string name="nav_buttons">Navigációs gombok</string>
+    <string name="nav_order">Gombok sorrendje (balról jobbra)</string>
+    <string name="nav_earlier">Korábbra</string>
+    <string name="nav_later">Későbbre</string>
+    <string name="nav_reset">Gombok visszaállítása</string>
+    <string name="nav_search">Keresés</string>
+    <string name="nav_power">Bekapcsolás</string>
+    <string name="nav_go_to_recovery">Ugrás a recoverybe</string>
+    <string name="nav_volume_down">Hangerő le</string>
+    <string name="nav_volume_up">Hangerő fel</string>
+    <string name="nav_up">D-pad fel</string>
+    <string name="nav_down">D-pad le</string>
+    <string name="nav_left">D-pad balra</string>
+    <string name="nav_right">D-pad jobbra</string>
+    <string name="nav_center">D-pad közép</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Húzza az ujját a navigációs sáv feletti körön a gördítéshez; koppintson a kiválasztáshoz.</string>
+    <string name="nav_dpad_mode">Nyílbillentyű mód</string>
+    <string name="nav_dpad_sub">Ki: valódi relatív trackball-események a vendég alkalmazásoknak. Be: D-pad billentyűlenyomások helyette. Nem küld mindkettőt.</string>
+    <string name="nav_sensitivity">Érzékenység: %1$d dp lépésenként (alacsonyabb = gyorsabb)</string>
+    <string name="nav_trackball_waiting">Még nincs vendég trackball-kapcsolat</string>
+    <string name="nav_trackball_recovery">Recovery: használja a nyílbillentyű módot</string>
+    <string name="vs_bluetooth">Gazdagép Bluetooth (kísérleti)</string>
+    <string name="vs_bluetooth_sub">Lehetővé teszi, hogy a vendég a telefonon keresztül keressen, párosított listát kezeljen és kommunikáljon Bluetooth-eszközökkel: klasszikus soros (RFCOMM) és Bluetooth LE (GATT). Bluetooth-engedélyt és a VM teljes újraindítását igényli. Nem nyers HCI: a vendég hídon át látja a telefon adapterét, ezért a fejhallgatók (hangprofilok) nem támogatottak.</string>
+    <string name="bluetooth_permission_denied">A Bluetooth-engedély megtagadva: a vendég a gazdagép Bluetooth-a nélkül indul.</string>
+</resources>

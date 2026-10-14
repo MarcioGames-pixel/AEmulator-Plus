@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Menuknop verbergen</string>
+    <string name="vs_hide_menu_sub">Verberg de …-knop. De Terug-knop of terugbeweging van de telefoon opent dan het emulatormenu in plaats van Terug naar Android te sturen. De navigatieknoppen van de gast bedienen Android nog steeds.</string>
+    <string name="vs_vibration">Trillen van de gast</string>
+    <string name="vs_vibration_sub">Stuur verouderde trilsignalen van de gast door naar de telefoon. Wordt toegepast bij de volgende start; elke puls is beperkt tot 60 seconden.</string>
+    <string name="nav_buttons">Navigatieknoppen</string>
+    <string name="nav_order">Volgorde van de knoppen (van links naar rechts)</string>
+    <string name="nav_earlier">Eerder</string>
+    <string name="nav_later">Later</string>
+    <string name="nav_reset">Knoppen herstellen</string>
+    <string name="nav_search">Zoeken</string>
+    <string name="nav_power">Aan/uit</string>
+    <string name="nav_go_to_recovery">Naar recovery</string>
+    <string name="nav_volume_down">Volume omlaag</string>
+    <string name="nav_volume_up">Volume omhoog</string>
+    <string name="nav_up">D-pad omhoog</string>
+    <string name="nav_down">D-pad omlaag</string>
+    <string name="nav_left">D-pad links</string>
+    <string name="nav_right">D-pad rechts</string>
+    <string name="nav_center">D-pad midden</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Veeg over de cirkel boven de navigatiebalk om te rollen; tik om te selecteren.</string>
+    <string name="nav_dpad_mode">Pijltoetsmodus</string>
+    <string name="nav_dpad_sub">Uit: echte relatieve trackball-events voor gast-apps. Aan: in plaats daarvan D-pad-toetsaanslagen. Verstuurt niet beide.</string>
+    <string name="nav_sensitivity">Gevoeligheid: %1$d dp per stap (lager is sneller)</string>
+    <string name="nav_trackball_waiting">Nog geen trackballverbinding met de gast</string>
+    <string name="nav_trackball_recovery">Recovery: gebruik de pijltoetsmodus</string>
+    <string name="vs_bluetooth">Host-bluetooth (experimenteel)</string>
+    <string name="vs_bluetooth_sub">Laat de gast bluetooth-apparaten scannen, de gekoppelde lijst bekijken en ermee communiceren via de telefoon: klassiek serieel (RFCOMM) en Bluetooth LE (GATT). Vereist bluetooth-toestemming en een volledige herstart van de VM. Geen ruwe HCI: de gast ziet de adapter van de telefoon via een brug, dus headsets (audioprofielen) worden niet ondersteund.</string>
+    <string name="bluetooth_permission_denied">Bluetooth-toestemming geweigerd: de gast start op zonder host-bluetooth.</string>
+</resources>

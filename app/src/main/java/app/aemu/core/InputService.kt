@@ -281,10 +281,12 @@ class InputService(private val paths: VmPaths, private val log: (String) -> Unit
             }
         }
         val down = now.isNotEmpty()
+        val wasDownPrev = wasDown
         if (down != wasDown) {
             put(b, EV_KEY, BTN_TOUCH, if (down) 1 else 0)
             wasDown = down
         }
+        if (!down && mtMode == 4 && wasDownPrev) put(b, EV_ABS, ABS_PRESSURE, 0) // single-touch readers (1.5/1.6) end the touch on pressure 0
         if (!down && mtMode != 4 && mtMode != 5) put(b, EV_SYN, SYN_MT_REPORT, 0)
         put(b, EV_SYN, SYN_REPORT, 0)
         flush(b)

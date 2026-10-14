@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Dölj menyknappen</string>
+    <string name="vs_hide_menu_sub">Döljer …-knappen. Telefonens Bakåt-knapp eller bakåtgest öppnar i stället emulatormenyn, i stället för att skicka Bakåt till Android. Gästens navigeringsknappar styr fortfarande Android.</string>
+    <string name="vs_vibration">Gästvibration</string>
+    <string name="vs_vibration_sub">Vidarebefordra äldre gästvibration till telefonen. Gäller vid nästa start; varje puls begränsas till 60 sekunder.</string>
+    <string name="nav_buttons">Navigeringsknappar</string>
+    <string name="nav_order">Knappordning (från vänster till höger)</string>
+    <string name="nav_earlier">Tidigare</string>
+    <string name="nav_later">Senare</string>
+    <string name="nav_reset">Återställ knappar</string>
+    <string name="nav_search">Sök</string>
+    <string name="nav_power">Ström</string>
+    <string name="nav_go_to_recovery">Gå till recovery</string>
+    <string name="nav_volume_down">Volym ned</string>
+    <string name="nav_volume_up">Volym upp</string>
+    <string name="nav_up">Styrkors upp</string>
+    <string name="nav_down">Styrkors ned</string>
+    <string name="nav_left">Styrkors vänster</string>
+    <string name="nav_right">Styrkors höger</string>
+    <string name="nav_center">Styrkors mitt</string>
+    <string name="nav_trackball">Styrkula</string>
+    <string name="nav_trackball_sub">Svep på cirkeln ovanför navigeringsfältet för att rulla; tryck för att välja.</string>
+    <string name="nav_dpad_mode">Piltangentläge</string>
+    <string name="nav_dpad_sub">Av: riktiga relativa styrkulehändelser för gästappar. På: tryckningar på styrkorsets knappar i stället. Skickar inte båda.</string>
+    <string name="nav_sensitivity">Känslighet: %1$d dp per steg (lägre är snabbare)</string>
+    <string name="nav_trackball_waiting">Ingen styrkuleanslutning från gästen ännu</string>
+    <string name="nav_trackball_recovery">Recovery: använd piltangentläge</string>
+    <string name="vs_bluetooth">Värdens Bluetooth (experimentell)</string>
+    <string name="vs_bluetooth_sub">Låt gästen söka efter, lista parkopplade och kommunicera med Bluetooth-enheter via telefonen: klassisk seriell (RFCOMM) och Bluetooth LE (GATT). Kräver Bluetooth-behörighet och en fullständig omstart av den virtuella maskinen. Inte rå HCI: gästen ser telefonens adapter genom en brygga, så headset (ljudprofiler) stöds inte.</string>
+    <string name="bluetooth_permission_denied">Bluetooth-behörighet nekad: gästen startar utan värdens Bluetooth.</string>
+</resources>

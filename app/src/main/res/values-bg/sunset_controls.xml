@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bulgarian (bg) translation. Keys mirror values/sunset_controls.xml. -->
+<resources>
+    <string name="vs_hide_menu">Скриване на бутона за менюто</string>
+    <string name="vs_hide_menu_sub">Скрива бутона „…“. Бутонът „Назад“ на телефона или жестът за връщане отваря менюто на емулатора, вместо да изпраща „Назад“ към Android. Навигационните бутони на госта продължават да управляват Android.</string>
+    <string name="vs_vibration">Вибрация на госта</string>
+    <string name="vs_vibration_sub">Препраща старата вибрация на госта към телефона. Влиза в сила при следващото зареждане; всеки импулс е ограничен до 60 секунди.</string>
+    <string name="nav_buttons">Навигационни бутони</string>
+    <string name="nav_order">Ред на бутоните (отляво надясно)</string>
+    <string name="nav_earlier">По-рано</string>
+    <string name="nav_later">По-късно</string>
+    <string name="nav_reset">Нулиране на бутоните</string>
+    <string name="nav_search">Търсене</string>
+    <string name="nav_power">Захранване</string>
+    <string name="nav_go_to_recovery">Към recovery</string>
+    <string name="nav_volume_down">Намаляване на звука</string>
+    <string name="nav_volume_up">Увеличаване на звука</string>
+    <string name="nav_up">D-pad нагоре</string>
+    <string name="nav_down">D-pad надолу</string>
+    <string name="nav_left">D-pad наляво</string>
+    <string name="nav_right">D-pad надясно</string>
+    <string name="nav_center">D-pad център</string>
+    <string name="nav_trackball">Трекбол</string>
+    <string name="nav_trackball_sub">Плъзнете върху кръга над навигационната лента, за да превъртате; докоснете, за да изберете.</string>
+    <string name="nav_dpad_mode">Режим със стрелки</string>
+    <string name="nav_dpad_sub">Изкл.: истински относителни събития на трекбола за приложенията на госта. Вкл.: натискания на клавишите на D-pad вместо тях. Не изпраща и двете.</string>
+    <string name="nav_sensitivity">Чувствителност: %1$d dp на стъпка (по-ниско е по-бързо)</string>
+    <string name="nav_trackball_waiting">Още няма връзка с трекбола на госта</string>
+    <string name="nav_trackball_recovery">Recovery: използвайте режима със стрелки</string>
+    <string name="vs_bluetooth">Bluetooth на хоста (експериментално)</string>
+    <string name="vs_bluetooth_sub">Позволява на госта да търси, да изброява сдвоени и да общува с Bluetooth устройства през телефона: класически сериен (RFCOMM) и Bluetooth LE (GATT). Изисква разрешение за Bluetooth и пълно рестартиране на виртуалната машина. Не е суров HCI: гостът вижда адаптера на телефона през мост, затова слушалките (аудио профили) не се поддържат.</string>
+    <string name="bluetooth_permission_denied">Разрешението за Bluetooth е отказано: гостът ще се зареди без Bluetooth на хоста.</string>
+</resources>

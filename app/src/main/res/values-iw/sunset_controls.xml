@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">הסתר את לחצן התפריט</string>
+    <string name="vs_hide_menu_sub">מסתיר את הלחצן …. לחצן החזרה של הטלפון או מחוות החזרה פותחים את תפריט האמולטור במקום לשלוח חזרה ל-Android. לחצני הניווט של האורח ממשיכים לשלוט ב-Android.</string>
+    <string name="vs_vibration">רטט האורח</string>
+    <string name="vs_vibration_sub">מעביר לטלפון רטט ישן של האורח. מוחל באתחול הבא; כל פולס מוגבל ל-60 שניות.</string>
+    <string name="nav_buttons">לחצני ניווט</string>
+    <string name="nav_order">סדר הלחצנים (משמאל לימין)</string>
+    <string name="nav_earlier">מוקדם יותר</string>
+    <string name="nav_later">מאוחר יותר</string>
+    <string name="nav_reset">אפס לחצנים</string>
+    <string name="nav_search">חיפוש</string>
+    <string name="nav_power">הפעלה</string>
+    <string name="nav_go_to_recovery">עבור ל-recovery</string>
+    <string name="nav_volume_down">הנמכת עוצמת קול</string>
+    <string name="nav_volume_up">הגברת עוצמת קול</string>
+    <string name="nav_up">D-pad למעלה</string>
+    <string name="nav_down">D-pad למטה</string>
+    <string name="nav_left">D-pad שמאלה</string>
+    <string name="nav_right">D-pad ימינה</string>
+    <string name="nav_center">D-pad מרכז</string>
+    <string name="nav_trackball">טראקבול</string>
+    <string name="nav_trackball_sub">החלק על העיגול שמעל סרגל הניווט כדי לגלגל; הקש כדי לבחור.</string>
+    <string name="nav_dpad_mode">מצב מקשי חצים</string>
+    <string name="nav_dpad_sub">כבוי: אירועי trackball יחסיים אמיתיים לאפליקציות האורח. מופעל: לחיצות מקשי D-pad במקומם. אינו שולח את שניהם.</string>
+    <string name="nav_sensitivity">רגישות: %1$d dp לכל צעד (נמוך יותר = מהיר יותר)</string>
+    <string name="nav_trackball_waiting">עדיין אין חיבור trackball לאורח</string>
+    <string name="nav_trackball_recovery">Recovery: השתמש במצב מקשי חצים</string>
+    <string name="vs_bluetooth">Bluetooth של המארח (ניסיוני)</string>
+    <string name="vs_bluetooth_sub">מאפשר לאורח לסרוק, לרשום התאמות ולתקשר עם התקני Bluetooth דרך הטלפון: טורי קלאסי (RFCOMM) ו-Bluetooth LE ‏(GATT). נדרשת הרשאת Bluetooth והפעלה מחדש מלאה של המכונה הווירטואלית. לא HCI גולמי: האורח רואה את מתאם הטלפון דרך גשר, ולכן אוזניות (פרופילי שמע) אינן נתמכות.</string>
+    <string name="bluetooth_permission_denied">הרשאת Bluetooth נדחתה: האורח יאותחל בלי Bluetooth של המארח.</string>
+</resources>

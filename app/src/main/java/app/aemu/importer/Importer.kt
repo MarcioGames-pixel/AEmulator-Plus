@@ -132,6 +132,8 @@ class Importer(
         val h = ByteArray(head.remaining()).also { head.get(it) }
         if (h.size < 2) throw LocalizedIOException("empty or truncated firmware file", R.string.imp_empty_or_truncated_firmware_file)
         when {
+            // raw NAND partition dump (mtd0.img ... mtdN.img): nothing in the name says which partition it is
+            NandDump.isMtdName(name.replace('\\', '/').substringAfterLast('/')) -> importMtdDump(src, name)
             name.endsWith(".ofp", true) && h.size > 4 && h[0] == 'P'.code.toByte() && h[1] == 'K'.code.toByte() && h[2].toInt() == 3 && h[3].toInt() == 4 -> {
                 val source = spill(streamOf(src), name)
                 val toolWork = File(tmp, "tool-${System.nanoTime()}").apply { mkdirs() }
@@ -896,6 +898,8 @@ class Importer(
                         val nestedFile = spill(entryStream, base)
                         nested.add(nestedFile to "tool")
                     }
+                    // raw NAND partition dump: classified by content once the archive is read (see importMtdDump)
+                    NandDump.isMtdName(base) && e.size > 0 -> nested.add(spill(entryStream, base) to "mtd")
                     else -> if (e.size < (4L shl 20) || !importGptStream(entryStream, base)) drain(entryStream)
                 }
                 onProgress(lt(R.string.imp_extracting, base), 0.5f)
@@ -925,6 +929,48 @@ class Importer(
             }
             if (!gotSystem && nested.isEmpty()) log("no system found in archive $name")
         }
+    }
+
+    /**
+     * One partition of a raw NAND dump (mtd0.img, mtd1.img ...). The name says nothing about what it holds, so the
+     * content decides:
+     *  - erased flash (all 0xff) is an unused partition and is skipped;
+     *  - a YAFFS2 volume with build.prop at its root is the system partition;
+     *  - a kernel with a ramdisk is the boot partition, or the recovery when the ramdisk carries /sbin/recovery
+     *    (dumps that keep the spare area behind each page are read without it, see [NandDump]);
+     *  - anything else (bootloader, calibration data, logos ...) is not needed and is skipped.
+     */
+    private fun importMtdDump(src: RandomSource, name: String) {
+        val base = name.replace('\\', '/').substringAfterLast('/')
+        if (src.size < 4096) { log("$base: too small to be a partition, skipped"); return }
+        if (NandDump.isBlank(src)) { log("$base: erased flash, skipped"); return }
+        if (Yaffs2Reader.probe(src) && yaffs2HoldsSystem(src)) {
+            log("$base: YAFFS2 system partition")
+            importImage(src, "system")
+            return
+        }
+        if (src.size <= NandDump.MAX_BOOT_BYTES) {
+            val raw = readAllFrom(src)
+            for (image in NandDump.candidates(raw)) {
+                val rd = runCatching { BootImage.ramdisk(image) }.getOrNull()
+                if (rd.isNullOrEmpty() || rd.none { e -> e.name.removePrefix("./").let { it == "init.rc" || it == "sbin/recovery" } }) continue
+                if (hasRecoveryBinary(image)) takeRecovery(image.inputStream(), "recovery ($base)") else takeBoot(image)
+                return
+            }
+        }
+        log("$base: not a boot, recovery or system partition, skipped")
+    }
+
+    /** True if the YAFFS2 volume has /build.prop at its root: a raw /system partition. */
+    private fun yaffs2HoldsSystem(src: RandomSource): Boolean = try {
+        var found = false
+        Yaffs2Reader(src) { if (cancelled) throw IOException("cancelled") }.walk { path, node ->
+            if (path == "build.prop" && node.type == 1) found = true
+        }
+        found
+    } catch (t: Throwable) {
+        if (cancelled) throw t
+        false
     }
 
     /**

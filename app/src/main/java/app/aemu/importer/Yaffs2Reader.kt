@@ -13,14 +13,17 @@ import java.util.TreeMap
  * Layout is auto-detected (this follows the yaffs2zip.py approach, which is known to cope with a
  * wide range of real-world images):
  *
- *  1. Tagged images. Object-header tags (chunk id 0, byte count 0xffff) are located by signature
+ *  1. Tagged images (the sector-row layout of 2. is tried first, being the more specific). Object-header tags (chunk id 0, byte count 0xffff) are located by signature
  *     and every page/spare geometry x tag offset x byte order is tried; the winner is the layout
  *     under which most tags point at a plausible object header exactly one page earlier. This also
  *     recovers the offset of the first chunk (images that do not start on a chunk boundary) and
  *     works for any tag offset inside the spare area.
- *  2. Spare-less images: object header page followed by ceil(size / page) data pages; the object
+ *  2. "Sector row" spare layout (HTC Sooner / OMAP-era phones, 2048+64 pages): the 64-byte spare is four 16-byte
+ *     rows, one per 512-byte sector, and the tag bytes are spread over them; see [decodeRowTags]. The tags are
+ *     recognised by their fixed bit pattern, not by a signature search.
+ *  3. Spare-less images: object header page followed by ceil(size / page) data pages; the object
  *     ids are implicit (root = 1, then 257, 258, ...) and the tree is rebuilt in sequential order.
- *  3. Tagged images that the signature search cannot see (few headers, extended headers, byte
+ *  4. Tagged images that the signature search cannot see (few headers, extended headers, byte
  *     count not 0xffff): plausibility scoring over the first pages, first chunk assumed at offset 0.
  *
  * Tagged images follow the YAFFS2 scan rules:
@@ -45,7 +48,7 @@ class Yaffs2Reader(private val src: RandomSource, private val checkCancelled: ()
      * @param sequential true for spare-less images (no tags; [spareSize] is 0)
      */
     data class Geometry(val pageSize: Int, val spareSize: Int, val order: ByteOrder, val tagOffset: Int = 0,
-                        val base: Long = 0L, val sequential: Boolean = false) {
+                        val base: Long = 0L, val sequential: Boolean = false, val rows: Boolean = false) {
         val stride get() = pageSize + spareSize
     }
     data class Node(val id: Long, val parent: Long, val name: String, val type: Int,
@@ -167,10 +170,16 @@ class Yaffs2Reader(private val src: RandomSource, private val checkCancelled: ()
         // ---- pass 1: tags of every programmed page
         val tags = Tags()
         val tagBuf = ByteBuffer.allocate(16).order(g.order)
+        val spareBuf = ByteBuffer.allocate(if (g.rows) g.spareSize else 0)
         var badSequence = 0
         for (p in 0 until pages.toInt()) {
             checkCancelled()
-            tagBuf.clear(); src.read(g.base + p.toLong() * stride + g.pageSize + g.tagOffset, tagBuf)
+            if (g.rows) {
+                spareBuf.clear(); src.read(g.base + p.toLong() * stride + g.pageSize, spareBuf)
+                decodeRowTags(spareBuf.array(), g.pageSize, tagBuf)
+            } else {
+                tagBuf.clear(); src.read(g.base + p.toLong() * stride + g.pageSize + g.tagOffset, tagBuf)
+            }
             val seq = tagBuf.getInt(0)
             if (seq == -1) continue // erased
             val useq = seq.toLong() and 0xffffffffL
@@ -404,7 +413,7 @@ class Yaffs2Reader(private val src: RandomSource, private val checkCancelled: ()
         fun probe(src: RandomSource) = detect(src) != null
 
         private fun detect(src: RandomSource): Geometry? =
-            detectBySignature(src) ?: detectSequential(src) ?: detectByScoring(src)
+            detectRows(src) ?: detectBySignature(src) ?: detectSequential(src) ?: detectByScoring(src)
 
         // ---- detector 1: header-tag signature search (yaffs2zip approach)
 
@@ -478,6 +487,74 @@ class Yaffs2Reader(private val src: RandomSource, private val checkCancelled: ()
                 if (best != null && bestScore >= maxOf(2, hits.size / 4)) return best
             }
             return null
+        }
+
+        // ---- detector 1b: "sector row" spare layout
+
+        private const val ROW_PAGE = 2048
+        private const val ROW_SPARE = 64
+
+        /**
+         * Tags of the layout used by the HTC Sooner (OMAP850) and similar early Android phones, where every
+         * 2048-byte page is followed by a 64-byte spare made of four 16-byte rows (one per 512-byte sector;
+         * bytes 8..11 of each row are ECC). Offsets are inside the spare area:
+         *
+         *  - 2..4    sequence number, 24 bit little endian (0x1000 for a freshly written image)
+         *  - 12, 15  object id: high byte inverted in byte 12, low byte in byte 15 (ids stay below 0x10000)
+         *  - 20      object type in the high nibble: only set in extended object headers
+         *  - 30, 31  chunk id, 16 bit little endian (an extended header carries the parent id here)
+         *  - 35      EXTRA_* flags of the chunk word: 0x80 header info, 0x40 shrink, 0x20 shadows
+         *
+         * The byte count is stored in units of 256 bytes rounded down, so it is useless; every data chunk is
+         * treated as a full page and the file size from the object header cuts the last one.
+         * Writes the four tag words (sequence, object, chunk, byte count) into [out]; sequence -1 = erased page.
+         */
+        private fun decodeRowTags(o: ByteArray, page: Int, out: ByteBuffer) {
+            fun b(i: Int) = o[i].toInt() and 0xff
+            if (b(2) == 0xff && b(3) == 0xff && b(4) == 0xff) { out.putInt(0, -1); return }
+            val id = ((b(12).inv() and 0xff) shl 8) or b(15)
+            val flags = b(35)
+            var obj = id
+            var chunk = b(30) or (b(31) shl 8)
+            if (flags and 0x80 != 0) {
+                obj = obj or (((b(20) ushr 4) and 0xf) shl 28)
+                chunk = chunk or ((flags and 0xe0) shl 24)
+            }
+            out.putInt(0, b(2) or (b(3) shl 8) or (b(4) shl 16))
+            out.putInt(4, obj)
+            out.putInt(8, chunk)
+            out.putInt(12, page)
+        }
+
+        private fun detectRows(src: RandomSource): Geometry? {
+            val stride = ROW_PAGE + ROW_SPARE
+            val total = src.size / stride
+            if (total < 4) return null
+            val sample = minOf(total, 8192L).toInt()
+            val buf = ByteBuffer.allocate(stride)
+            val tag = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN)
+            var valid = 0
+            var invalid = 0
+            for (p in 0 until sample) {
+                buf.clear(); src.read(p.toLong() * stride, buf)
+                val a = buf.array()
+                var erased = true
+                for (k in ROW_PAGE until stride) if (a[k] != 0xff.toByte()) { erased = false; break }
+                if (erased) continue
+                // unused bytes of the rows stay erased / zero in this layout; anything else is another layout
+                val ok = a[ROW_PAGE + 5] == 0xff.toByte() && a[ROW_PAGE + 6] == 0xff.toByte() &&
+                    a[ROW_PAGE + 7] == 0xff.toByte() && a[ROW_PAGE + 14] == 0.toByte()
+                if (!ok) { invalid++; continue }
+                decodeRowTags(a.copyOfRange(ROW_PAGE, stride), ROW_PAGE, tag)
+                val seq = tag.getInt(0).toLong() and 0xffffffffL
+                val obj = tag.getInt(4).toLong() and 0xffffffffL
+                val chunk = tag.getInt(8).toLong() and 0xffffffffL
+                val good = seq in LOWEST_SEQUENCE until HIGHEST_SEQUENCE && obj and 0x0fffffffL != 0L &&
+                    (chunk != 0L && chunk and EXTRA_HEADER_INFO_FLAG == 0L || validHeader(a, 0, false))
+                if (good) valid++ else invalid++
+            }
+            if (valid < 4 || invalid * 8 > valid) return null
+            return Geometry(ROW_PAGE, ROW_SPARE, ByteOrder.LITTLE_ENDIAN, 0, 0L, false, rows = true)
         }
 
         // ---- detector 2: plausibility scoring of the first pages (first chunk at offset 0)

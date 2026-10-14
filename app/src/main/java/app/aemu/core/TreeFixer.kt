@@ -134,6 +134,7 @@ class TreeFixer(
         // then no EGL display, SurfaceFlinger cannot pick a config and system_server dies with SIGSEGV).
         // They also replace the firmware's own libGLES_android.so, so use the firmware's software renderer instead.
         eglConfig(img.settings.gpu && !GuestPreload.isGlibcFirmware(root))
+        FbDirectPatch.apply(root, img.api, log) // Android 1.x: no page flipping -> render straight into fb0 (otherwise the screen stays black)
         makeDataDirs()
         fixDataRootAccess()
         runCatching {
@@ -161,8 +162,10 @@ class TreeFixer(
         selinuxOff()
         surfaceGuard()
         surfaceFlingerGuard()
+        executableCodeCache()
         glassGestureGuard()
         glassBluetoothPark()
+        parkAutoSmsApps()
         disableStallingPackages()
         glassLocationProvider()
         seedDefaultIme()
@@ -581,6 +584,17 @@ class TreeFixer(
                 if (romGralloc.renameTo(parked)) log("firmware gralloc uses ION, replaced with engine gralloc")
             }
         }
+        // Eclair (API 5..7): the Droid firmware gralloc.default blocks forever on its own module mutex (strace: FUTEX_WAIT on an address
+        // inside gralloc.default.so, right after mmap of fb0) once fb0 offers a single page, so SurfaceFlinger never finishes readyToRun and
+        // system_init never starts the Java services. The engine gralloc (AOSP) handles the single-page case with a plain ashmem buffer.
+        val eclairGralloc = img.api in 5..7
+        if (eclairGralloc && romGralloc.isFile) {
+            val parked = File(root, "system/.aemu-parked/system#lib#hw#gralloc.default.so.eclair")
+            if (!parked.exists()) {
+                parked.parentFile?.mkdirs()
+                if (runCatching { romGralloc.copyTo(parked) }.isSuccess) log("Eclair: firmware gralloc replaced with engine gralloc")
+            }
+        }
         var copied = 0
         // 7.0+ libEGL on a qemu kernel (qemu.gles=1) only tries the "emulation" driver name
         val nougat = if (img.api >= 24 && copies.any { it.second == "system/lib/egl/libGLES_bridge.so" })
@@ -601,7 +615,7 @@ class TreeFixer(
             (if (GuestPreload.isGlibcFirmware(root)) listOf("@libshmshim.so" to GuestPreload.SHMSHIM.removePrefix("/")) else emptyList())) {
             val dst = File(root, to)
             // gralloc движка — только если в прошивке своего нет
-            if (from == "gralloc.default.so" && dst.isFile) continue
+            if (from == "gralloc.default.so" && dst.isFile && !eclairGralloc) continue
             // «@» — общий для всех движков файл
             // звуковой HAL стенда разложен под AudioFlinger HTC; остальным 4.2+ — вариант с раскладкой AOSP.
             // У Samsung свой audio_stream_out (лишние слоты) — с ним AOSP-вариант роняет mediaserver,
@@ -1005,8 +1019,26 @@ class TreeFixer(
             val keep = File(root, "system/.aemu-parked/system#lib#libsurfaceflinger.so")
             if (!keep.exists()) { keep.parentFile?.mkdirs(); lib.copyTo(keep) }
             if (ElfPatch.skipNullDeviceHook(lib) > 0) log("libsurfaceflinger: the missing HAL device hook is skipped")
+            // Eclair/Froyo: a never-drawn layer (the Launcher's all-apps RenderScript SurfaceView) is cleared to opaque black over the whole home screen
+            if (img.api <= 8 && ElfPatch.skipUndrawnLayerClear(lib) > 0) log("libsurfaceflinger: a layer that was never drawn is no longer cleared to black")
         }
     }.onFailure { log("libsurfaceflinger: patch failed: ${it.message}") }
+
+    /**
+     * Cupcake..Froyo (API <= 8): libpixelflinger generates its scanline code into malloc()ed heap and runs it after
+     * cacheflush(); qemu-user refuses to execute the non-PROT_EXEC page, so the first menu / window animation killed
+     * SurfaceFlinger (SIGSEGV with PC in an rw-p mapping) and, with it, system_server and zygote. libaemushim's
+     * cacheflush() fixes that, but the linker of those releases has no LD_PRELOAD (added in 2.3), so the shim is never
+     * loaded there. Make the libc cacheflush() do the mprotect itself (see [ElfPatch.execCacheflush]).
+     */
+    private fun executableCodeCache() = runCatching {
+        if (img.api > 8) return@runCatching
+        val lib = File(root, "system/lib/libc.so")
+        if (!lib.isFile) return@runCatching
+        val keep = File(root, "system/.aemu-parked/system#lib#libc.so")
+        if (!keep.exists()) { keep.parentFile?.mkdirs(); lib.copyTo(keep) }
+        if (ElfPatch.execCacheflush(lib) > 0) log("libc: cacheflush() makes generated code executable (no LD_PRELOAD before 2.3)")
+    }.onFailure { log("libc: cacheflush patch failed: ${it.message}") }
 
     /**
      * A failed Surface.unlockCanvasAndPost() throws IllegalArgumentException; on a system_server thread nothing
@@ -1045,6 +1077,44 @@ class TreeFixer(
             setOf("_ZNK5glass10DMPManager22isDMPGesturesSupportedEv", "_ZN5glass10DMPManager27blockUntilGestureRecognizedEPNS_10DMPGestureE"),
             "glass: DMP gestures reported unavailable")
     }.onFailure { log("glass: gesture patch failed: ${it.message}") }
+
+    /**
+     * Android 1.x has no real modem here: the framework's SimulatedCommands answers sendSMS with a plain
+     * RuntimeException("Unimplemented"), and SMSDispatcher.handleSendComplete casts every send error to CommandException
+     * (ClassCastException at SMSDispatcher.java:381), which kills com.android.phone. T-Mobile's MyFaves sends a
+     * registration SMS to 453 each time the phone process starts, so the phone crashed, was restarted, MyFaves sent
+     * again, and the system gave up with "com.android.phone has crashed too many times". An SMS can never be delivered
+     * here anyway, so the apps that send one on their own are set aside (the stock files are kept in system/.aemu-parked).
+     */
+    private fun parkAutoSmsApps() = runCatching {
+        if (img.api > 4) return@runCatching
+        val parked = File(root, "system/.aemu-parked").apply { mkdirs() }
+        val marker = "com.tmobile.myfaves"
+        val utf16 = marker.toByteArray(Charsets.UTF_16LE)
+        var moved = 0
+        for (dir in listOf("system/app", "system/priv-app")) {
+            val apps = File(root, dir).listFiles { f -> f.isFile && f.name.endsWith(".apk") } ?: continue
+            for (apk in apps) {
+                val hit = apk.name.contains("myfaves", ignoreCase = true) || runCatching {
+                    java.util.zip.ZipFile(apk).use { z ->
+                        val e = z.getEntry("AndroidManifest.xml") ?: return@use false
+                        val b = z.getInputStream(e).use { it.readBytes() }
+                        fun has(h: ByteArray, n: ByteArray): Boolean { outer@ for (i in 0..h.size - n.size) { for (k in n.indices) if (h[i + k] != n[k]) continue@outer; return true }; return false }
+                        has(b, utf16) || has(b, marker.toByteArray())
+                    }
+                }.getOrDefault(false)
+                if (!hit) continue
+                for (f in listOf(apk, File(apk.path.removeSuffix(".apk") + ".odex"))) {
+                    if (!f.isFile) continue
+                    val dst = File(parked, f.relativeTo(root).path.replace('/', '#'))
+                    if (dst.exists()) dst.delete()
+                    if (f.renameTo(dst)) moved++ else log("sms: could not set aside ${f.name}")
+                }
+                File(root, "data/dalvik-cache/" + apk.relativeTo(root).path.replace('/', '@') + "@classes.dex").delete()
+            }
+        }
+        if (moved > 0) log("sms: MyFaves set aside ($moved file(s)); it sent an SMS at every start and the simulated modem cannot send ones (com.android.phone crash loop)")
+    }.onFailure { log("sms: could not set aside the auto-SMS app: ${it.message}") }
 
     /**
      * Glass (4.0.x): the Glass Bluetooth app (com.google.glass.bluetooth) cannot work in the guest. Its
@@ -1226,9 +1296,15 @@ class TreeFixer(
         }
         // SurfaceFlinger's DisplayEventThread loops sleep→wake: missing nodes make it spin at 100% CPU (EBADF).
         // wake answers at once; sleep is a FIFO with no writer, so the read blocks forever and the screen stays on.
-        runCatching {
-            File(power, "wait_for_fb_wake").let { if (!it.isFile) it.writeText("awake") }
-            val sleep = File(power, "wait_for_fb_sleep")
+        // Android 1.x–2.x look in /sys/android_power, later builds in /sys/power: serve both, otherwise SurfaceFlinger
+        // logs "Couldn't open /sys/android_power/wait_for_fb_sleep or wait_for_fb_wake" and the screen stays black.
+        val androidPower = File(root, "sys/android_power").apply { mkdirs() }
+        // nodes of the original power.c, created even when the library scan above found nothing (stripped/odd builds)
+        for (n in listOf("acquire_partial_wake_lock", "acquire_full_wake_lock", "release_wake_lock", "request_state"))
+            File(androidPower, n).let { f -> runCatching { if (!f.exists()) f.createNewFile(); f.setReadable(true, false); f.setWritable(true, false) } }
+        for (dir in listOf(power, androidPower)) runCatching {
+            File(dir, "wait_for_fb_wake").let { if (!it.isFile) it.writeText("awake") }
+            val sleep = File(dir, "wait_for_fb_sleep")
             if (!sleep.exists()) android.system.Os.mkfifo(sleep.absolutePath, "666".toInt(8))
         }
         // подсветка экрана: LightsService пишет сюда яркость
@@ -1240,6 +1316,7 @@ class TreeFixer(
         javaIfInet6Redirect()
         settingsCpuinfoRedirect()
         launcherProximityGuard()
+        libRsUploadGuard()
         tungstenLedNodes()
         tungstenLedInitPatch()
         tungstenLedCountPatch()
@@ -1401,6 +1478,31 @@ class TreeFixer(
             }
         }
     }.onFailure { log("launcher: proximity guard failed: ${it.message}") }
+
+    /**
+     * Eclair/Froyo libRS: Allocation::uploadToTexture() aborts (null write, SIGSEGV) when glGenTextures() gives no id, i.e.
+     * when no GL context is current yet. The stock Launcher2 (AllAppsView) hits that when its first Surface has no window
+     * (setSurface w h 0x0), so the launcher dies on every start and the system relaunches it forever.
+     * [LibRsUploadPatch] makes that path return instead, as later AOSP does. Only Nexus One images older than Android 2.3
+     * (API 9) are considered; their libRS is searched for the assert (whatever the firmware build), and one without it
+     * is left alone and not logged.
+     */
+    private fun libRsUploadGuard() = runCatching {
+        if (img.api >= 9 || !(img.model.contains("Nexus One", true) || img.name.contains("Nexus One", true))) return@runCatching
+        for (dir in listOf("system/lib", "vendor/lib", "system/vendor/lib")) {
+            val f = File(root, "$dir/libRS.so")
+            if (!f.isFile || isLink(f)) continue
+            val d = f.readBytes()
+            when (LibRsUploadPatch.apply(d)) {
+                LibRsUploadPatch.PATCHED -> {
+                    f.setWritable(true, true); f.writeBytes(d)
+                    log("RenderScript: ${f.name} no longer aborts when a texture is uploaded without a GL context")
+                }
+                LibRsUploadPatch.UNEXPECTED -> log("RenderScript: ${f.name} has the texture-upload assert, but not in the code this patch knows, left as is")
+                else -> {}
+            }
+        }
+    }.onFailure { log("RenderScript: upload guard failed: ${it.message}") }
 
     /**
      * Nexus Q (Tungsten): LEDService's LEDController.nativeInit() opens the LED ring driver and throws

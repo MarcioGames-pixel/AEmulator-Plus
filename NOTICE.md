@@ -56,6 +56,11 @@ See [build/source instructions](docs/build-source.md) and the
   style switch); the `holoNavbar` flag in `AppPrefs.kt`; the `th_*` and `as_navbar_holo` strings
   (en, pt-BR, pt-PT). Not taken: the 3D firmware library and the other Super Plus changes.
 
+- **2026-10-14**: raw NAND partition dumps (`mtd0.img`, `mtd1.img`, ... as found in HTC Sooner firmware). Added
+  `app/src/main/java/app/aemu/importer/NandDump.kt`; `Importer.kt` (`importMtdDump`, hooks in `handle()` and the 7z
+  loop); `Yaffs2Reader.kt` (the 2048+64 "sector row" spare layout); `BootImage.kt` (kernel with an appended gzip
+  ramdisk, no `ANDROID!` header).
+
 **Unresolved source-provenance gap:** this checkout contains inherited prebuilt
 engine binaries for which matching source, patches and build instructions have
 not been located or verified. The tagged checkout can rebuild the APK using

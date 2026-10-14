@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Мәзір түймесін жасыру</string>
+    <string name="vs_hide_menu_sub">… түймесін жасырады. Оның орнына телефонның «Артқа» түймесі немесе артқа қайту ым-ишарасы эмулятор мәзірін ашады, ал Android-қа «Артқа» жіберілмейді. Қонақтың навигация түймелері Android-ты бұрынғыдай басқарады.</string>
+    <string name="vs_vibration">Қонақ дірілі</string>
+    <string name="vs_vibration_sub">Ескі қонақ дірілін телефонға жібереді. Келесі жүктелуде қолданылады; әр импульс 60 секундпен шектеледі.</string>
+    <string name="nav_buttons">Навигация түймелері</string>
+    <string name="nav_order">Түймелер реті (солдан оңға)</string>
+    <string name="nav_earlier">Ертерек</string>
+    <string name="nav_later">Кейінірек</string>
+    <string name="nav_reset">Түймелерді қалпына келтіру</string>
+    <string name="nav_search">Іздеу</string>
+    <string name="nav_power">Қуат</string>
+    <string name="nav_go_to_recovery">Recovery-ге өту</string>
+    <string name="nav_volume_down">Дыбысты азайту</string>
+    <string name="nav_volume_up">Дыбысты көбейту</string>
+    <string name="nav_up">D-pad жоғары</string>
+    <string name="nav_down">D-pad төмен</string>
+    <string name="nav_left">D-pad солға</string>
+    <string name="nav_right">D-pad оңға</string>
+    <string name="nav_center">D-pad ортасы</string>
+    <string name="nav_trackball">Трекбол</string>
+    <string name="nav_trackball_sub">Домалату үшін навигация тақтасының үстіндегі шеңберді сырғытыңыз; таңдау үшін түртіңіз.</string>
+    <string name="nav_dpad_mode">Көрсеткі пернелер режимі</string>
+    <string name="nav_dpad_sub">Өшірулі: қонақ қолданбалары үшін нақты салыстырмалы трекбол оқиғалары. Қосулы: оның орнына D-pad пернелерінің басылуы. Екеуі бірге жіберілмейді.</string>
+    <string name="nav_sensitivity">Сезімталдық: қадамына %1$d dp (аз болса — жылдамырақ)</string>
+    <string name="nav_trackball_waiting">Қонақ трекболымен байланыс әлі жоқ</string>
+    <string name="nav_trackball_recovery">Recovery: көрсеткі пернелер режимін пайдаланыңыз</string>
+    <string name="vs_bluetooth">Хост Bluetooth (эксперименттік)</string>
+    <string name="vs_bluetooth_sub">Қонаққа телефон арқылы Bluetooth құрылғыларын іздеуге, жұптастырылғандар тізімін алуға және олармен байланысуға мүмкіндік береді: классикалық сериялық (RFCOMM) және Bluetooth LE (GATT). Bluetooth рұқсаты мен VM-ді толық қайта іске қосу қажет. Шикі HCI емес: қонақ телефон адаптерін көпір арқылы көреді, сондықтан гарнитураларға (аудио профильдері) қолдау көрсетілмейді.</string>
+    <string name="bluetooth_permission_denied">Bluetooth рұқсаты берілмеді: қонақ хост Bluetooth-сыз жүктеледі.</string>
+</resources>

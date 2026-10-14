@@ -62,7 +62,26 @@ object BootImage {
         // Sony kernel.sin / fotakernel.sin (2010-2013 Xperia): an ELF whose segments are the kernel and the ramdisk
         if (img.size > 64 && img[0] == 0x7f.toByte() && String(img, 1, 3, Charsets.ISO_8859_1) == "ELF") fromElf(img)?.let { return it }
         // иначе — zImage со встроенным initramfs
-        return fromZImage(img)
+        return fromZImage(img) ?: fromAppendedRamdisk(img)
+    }
+
+    /**
+     * Early Android kernels (HTC Sooner, OMAP, Linux 2.6.18-2.6.22) with no "ANDROID!" header: the boot partition is
+     * the kernel followed by a gzip-compressed newc cpio, found by scanning for a gzip stream that holds init.rc.
+     */
+    private fun fromAppendedRamdisk(img: ByteArray): List<CpioEntry>? {
+        var i = 0
+        while (i < img.size - 16) {
+            if (img[i] == 0x1f.toByte() && img[i + 1] == 0x8b.toByte() && img[i + 2] == 0x08.toByte()) {
+                val entries = runCatching {
+                    val d = gunzipLenient(img.copyOfRange(i, img.size))
+                    if (d.size > 6 && String(d, 0, 6, Charsets.ISO_8859_1) == "070701") cpio(d) else null
+                }.getOrNull()
+                if (entries != null && entries.any { it.name.removePrefix("./") == "init.rc" }) return entries
+            }
+            i++
+        }
+        return null
     }
 
     /** The program segment of a Sony ELF boot image that holds a (compressed) cpio with init.rc. */

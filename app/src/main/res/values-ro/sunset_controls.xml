@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Ascunde butonul de meniu</string>
+    <string name="vs_hide_menu_sub">Ascunde butonul …. Butonul Înapoi al telefonului sau gestul înapoi deschide meniul emulatorului în loc să trimită Înapoi către Android. Butoanele de navigare ale sistemului invitat controlează în continuare Android-ul.</string>
+    <string name="vs_vibration">Vibrația sistemului invitat</string>
+    <string name="vs_vibration_sub">Transmite telefonului vibrațiile vechi ale sistemului invitat. Se aplică la următoarea pornire; fiecare impuls este limitat la 60 de secunde.</string>
+    <string name="nav_buttons">Butoane de navigare</string>
+    <string name="nav_order">Ordinea butoanelor (de la stânga la dreapta)</string>
+    <string name="nav_earlier">Mai devreme</string>
+    <string name="nav_later">Mai târziu</string>
+    <string name="nav_reset">Resetează butoanele</string>
+    <string name="nav_search">Căutare</string>
+    <string name="nav_power">Pornire</string>
+    <string name="nav_go_to_recovery">Mergi la recovery</string>
+    <string name="nav_volume_down">Volum mai mic</string>
+    <string name="nav_volume_up">Volum mai mare</string>
+    <string name="nav_up">D-pad sus</string>
+    <string name="nav_down">D-pad jos</string>
+    <string name="nav_left">D-pad stânga</string>
+    <string name="nav_right">D-pad dreapta</string>
+    <string name="nav_center">D-pad centru</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Glisează pe cercul de deasupra barei de navigare pentru a derula; atinge pentru a selecta.</string>
+    <string name="nav_dpad_mode">Mod taste săgeți</string>
+    <string name="nav_dpad_sub">Dezactivat: evenimente trackball relative reale pentru aplicațiile invitate. Activat: apăsări de taste D-pad în loc. Nu le trimite pe amândouă.</string>
+    <string name="nav_sensitivity">Sensibilitate: %1$d dp per pas (mai mic = mai rapid)</string>
+    <string name="nav_trackball_waiting">Încă nu există o conexiune trackball a sistemului invitat</string>
+    <string name="nav_trackball_recovery">Recovery: folosește modul taste săgeți</string>
+    <string name="vs_bluetooth">Bluetooth gazdă (experimental)</string>
+    <string name="vs_bluetooth_sub">Permite sistemului invitat să caute, să listeze dispozitivele asociate și să comunice cu dispozitive Bluetooth prin telefon: serial clasic (RFCOMM) și Bluetooth LE (GATT). Necesită permisiune Bluetooth și o repornire completă a VM-ului. Nu este HCI brut: sistemul invitat vede adaptorul telefonului printr-o punte, deci căștile (profiluri audio) nu sunt acceptate.</string>
+    <string name="bluetooth_permission_denied">Permisiunea Bluetooth a fost refuzată: sistemul invitat va porni fără Bluetooth de la gazdă.</string>
+</resources>

@@ -402,4 +402,24 @@
     <string name="th_pick_picture">Background picture…</string>
     <string name="th_remove_picture">Remove picture</string>
     <string name="th_corner_note">With the GPU bridge on, some phones do not round the corners of the guest screen.</string>
+    <string name="sk_pick_resolution">Pick resolution</string>
+    <string name="sk_any">Any</string>
+    <string name="sk_resolution_sub">The screen size the phone in the picture had. The screen area keeps this shape while you resize it.</string>
+    <string name="sk_width">Width</string>
+    <string name="sk_height">Height</string>
+    <string name="sk_use">Use</string>
+    <string name="sk_add_png">Add new PNG</string>
+    <string name="sk_style">Bar, colours and corners</string>
+    <string name="sk_more">More</string>
+    <string name="sk_find_screen">Find screen automatically</string>
+    <string name="sk_found">Screen found. Drag its corners to fine-tune.</string>
+    <string name="sk_not_found">Couldn\'t find the screen. Drag the blue area onto it.</string>
+    <string name="sk_add_key">Add a hardware key</string>
+    <string name="sk_add_key_sub">Pick the key, then drag the yellow box onto that button in the picture. Touching it in the VM presses the key.</string>
+    <string name="sk_remove_key">Remove selected key</string>
+    <string name="sk_reset_screen">Reset screen area</string>
+    <string name="sk_remove_png">Remove PNG</string>
+    <string name="sk_hint">Drag the blue screen area or a yellow key to move it, a corner dot to resize it.</string>
+    <string name="sk_empty">Add a PNG of a phone to make a device skin</string>
+    <string name="sk_bar_hidden">This skin has its own keys, so the on-screen bar is hidden while it is shown.</string>
 </resources>

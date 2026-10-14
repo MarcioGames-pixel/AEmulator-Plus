@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">မီနူးခလုတ်ကို ဖျောက်ရန်</string>
+    <string name="vs_hide_menu_sub">… ခလုတ်ကို ဖျောက်သည်။ ၎င်းအစား ဖုန်း၏ နောက်သို့ခလုတ် သို့မဟုတ် နောက်ပြန်လက်ဟန်က Android သို့ နောက်သို့ မပို့ဘဲ အီမူလေတာမီနူးကို ဖွင့်သည်။ ဧည့်သည်၏ လမ်းညွှန်ခလုတ်များက Android ကို ဆက်လက်ထိန်းချုပ်သည်။</string>
+    <string name="vs_vibration">ဧည့်သည် တုန်ခါမှု</string>
+    <string name="vs_vibration_sub">ဧည့်သည်၏ အဟောင်းတုန်ခါမှုကို ဖုန်းသို့ ပေးပို့သည်။ နောက်တစ်ကြိမ်စတင်ချိန်တွင် သက်ရောက်သည်၊ တုန်ခါမှုတစ်ကြိမ်စီကို ၆၀ စက္ကန့်အထိ ကန့်သတ်ထားသည်။</string>
+    <string name="nav_buttons">လမ်းညွှန်ခလုတ်များ</string>
+    <string name="nav_order">ခလုတ်အစီအစဉ် (ဘယ်မှ ညာသို့)</string>
+    <string name="nav_earlier">ပိုစောရန်</string>
+    <string name="nav_later">ပိုနောက်ကျရန်</string>
+    <string name="nav_reset">ခလုတ်များကို ပြန်လည်သတ်မှတ်ရန်</string>
+    <string name="nav_search">ရှာဖွေရန်</string>
+    <string name="nav_power">ပါဝါ</string>
+    <string name="nav_go_to_recovery">Recovery သို့ သွားရန်</string>
+    <string name="nav_volume_down">အသံလျှော့ရန်</string>
+    <string name="nav_volume_up">အသံတိုးရန်</string>
+    <string name="nav_up">D-pad အပေါ်</string>
+    <string name="nav_down">D-pad အောက်</string>
+    <string name="nav_left">D-pad ဘယ်</string>
+    <string name="nav_right">D-pad ညာ</string>
+    <string name="nav_center">D-pad အလယ်</string>
+    <string name="nav_trackball">ထရက်ခ်ဘောလ်</string>
+    <string name="nav_trackball_sub">လှိမ့်ရန် လမ်းညွှန်ဘားအပေါ်ရှိ စက်ဝိုင်းကို ပွတ်ဆွဲပါ၊ ရွေးရန် နှိပ်ပါ။</string>
+    <string name="nav_dpad_mode">မြားခလုတ်မုဒ်</string>
+    <string name="nav_dpad_sub">ပိတ်ထားလျှင်- ဧည့်သည်အက်ပ်များအတွက် အစစ်အမှန် ဆက်စပ်ထရက်ခ်ဘောလ်ဖြစ်ရပ်များ။ ဖွင့်ထားလျှင်- ၎င်းအစား D-pad ခလုတ်နှိပ်မှုများ။ နှစ်မျိုးလုံး မပို့ပါ။</string>
+    <string name="nav_sensitivity">အာရုံခံနိုင်စွမ်း- တစ်ဆင့်လျှင် %1$d dp (နည်းလေ မြန်လေ)</string>
+    <string name="nav_trackball_waiting">ဧည့်သည်ထရက်ခ်ဘောလ် ချိတ်ဆက်မှု မရှိသေးပါ</string>
+    <string name="nav_trackball_recovery">Recovery- မြားခလုတ်မုဒ်ကို သုံးပါ</string>
+    <string name="vs_bluetooth">ဟို့စ် Bluetooth (စမ်းသပ်ဆဲ)</string>
+    <string name="vs_bluetooth_sub">ဧည့်သည်က ဖုန်းမှတစ်ဆင့် Bluetooth စက်များကို ရှာဖွေရန်၊ တွဲထားသောစာရင်းကြည့်ရန်နှင့် ဆက်သွယ်ရန် ခွင့်ပြုသည်- ရိုးရိုး serial (RFCOMM) နှင့် Bluetooth LE (GATT)။ Bluetooth ခွင့်ပြုချက်နှင့် VM ကို အပြည့်အဝ ပြန်စတင်ရန် လိုအပ်သည်။ HCI အစစ်အမှန် မဟုတ်ပါ- ဧည့်သည်က ဖုန်း၏ အဒက်ပတာကို တံတားတစ်ခုမှတစ်ဆင့် မြင်ရသဖြင့် ဟက်ဒ်ဆက်များ (အသံပရိုဖိုင်များ) ကို မပံ့ပိုးပါ။</string>
+    <string name="bluetooth_permission_denied">Bluetooth ခွင့်ပြုချက်ကို ငြင်းပယ်ထားသည်- ဧည့်သည်သည် ဟို့စ် Bluetooth မပါဘဲ စတင်မည်။</string>
+</resources>

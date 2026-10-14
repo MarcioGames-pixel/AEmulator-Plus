@@ -1,0 +1,31 @@
+<resources>
+    <string name="vs_hide_menu">Сакриј дугме менија</string>
+    <string name="vs_hide_menu_sub">Сакрива дугме …. Дугме Назад на телефону или покрет за назад отвара мени емулатора уместо да Android-у пошаље Назад. Навигациона дугмад госта и даље управљају Android-ом.</string>
+    <string name="vs_vibration">Вибрација госта</string>
+    <string name="vs_vibration_sub">Прослеђује телефону старе вибрације госта. Примењује се при следећем покретању; сваки импулс је ограничен на 60 секунди.</string>
+    <string name="nav_buttons">Навигациона дугмад</string>
+    <string name="nav_order">Редослед дугмади (слева надесно)</string>
+    <string name="nav_earlier">Раније</string>
+    <string name="nav_later">Касније</string>
+    <string name="nav_reset">Ресетуј дугмад</string>
+    <string name="nav_search">Претрага</string>
+    <string name="nav_power">Напајање</string>
+    <string name="nav_go_to_recovery">Иди у recovery</string>
+    <string name="nav_volume_down">Утишај</string>
+    <string name="nav_volume_up">Појачај</string>
+    <string name="nav_up">D-pad горе</string>
+    <string name="nav_down">D-pad доле</string>
+    <string name="nav_left">D-pad лево</string>
+    <string name="nav_right">D-pad десно</string>
+    <string name="nav_center">D-pad центар</string>
+    <string name="nav_trackball">Trackball</string>
+    <string name="nav_trackball_sub">Превуците преко круга изнад навигационе траке да котрљате; додирните да изаберете.</string>
+    <string name="nav_dpad_mode">Режим тастера са стрелицама</string>
+    <string name="nav_dpad_sub">Искључено: прави релативни trackball догађаји за апликације госта. Укључено: уместо тога притисци D-pad тастера. Не шаље оба.</string>
+    <string name="nav_sensitivity">Осетљивост: %1$d dp по кораку (мање је брже)</string>
+    <string name="nav_trackball_waiting">Још нема trackball везе са гостом</string>
+    <string name="nav_trackball_recovery">Recovery: користите режим тастера са стрелицама</string>
+    <string name="vs_bluetooth">Bluetooth домаћина (експериментално)</string>
+    <string name="vs_bluetooth_sub">Омогућава госту да преко телефона тражи Bluetooth уређаје, приказује упарене и комуницира с њима: класични серијски (RFCOMM) и Bluetooth LE (GATT). Захтева Bluetooth дозволу и потпуно поновно покретање виртуелне машине. Није сиров HCI: гост види адаптер телефона преко моста, па слушалице (аудио профили) нису подржане.</string>
+    <string name="bluetooth_permission_denied">Bluetooth дозвола је одбијена: гост ће се покренути без Bluetooth-а домаћина.</string>
+</resources>

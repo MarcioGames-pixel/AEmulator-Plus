@@ -98,4 +98,53 @@ class MotoImageTest {
         assertEquals(29.toByte(), out[14])    // last byte inside the slice
         assertTrue(out.drop(15).all { it == 0.toByte() })   // nothing from behind the window
     }
+
+    // ---- RAZR HD / RAZR M `system_signed`: "MOT_PIV\0" header, then an Android sparse image ----
+
+    private fun putRazrHeader(img: ByteArray) {
+        val h = "MOTO".toByteArray() + byteArrayOf(0x13, 0x57, 0x9b.toByte(), 0) + "MOT_PIV".toByteArray() + byteArrayOf(0, 0, 0)
+        h.copyInto(img)
+    }
+
+    /** 128 KiB header + sparse image: one RAW chunk of the ext4 (first [rawBlocks] blocks) and a DONT_CARE for the rest. */
+    private fun razr(fsBlocks: Int, rawBlocks: Int): ByteArray {
+        val hdr = 32 * blk
+        val sparseLen = 28 + 12 + rawBlocks * blk + 12
+        val img = ByteArray(hdr + sparseLen)
+        putRazrHeader(img)
+        val b = ByteBuffer.wrap(img).order(ByteOrder.LITTLE_ENDIAN)
+        b.position(hdr)
+        b.putInt(0xED26FF3A.toInt()); b.putShort(1); b.putShort(0); b.putShort(28); b.putShort(12)
+        b.putInt(blk); b.putInt(fsBlocks); b.putInt(2); b.putInt(0)
+        b.putShort(0xCAC1.toShort()); b.putShort(0); b.putInt(rawBlocks); b.putInt(12 + rawBlocks * blk)
+        val rawAt = b.position()
+        putSuperblock(img, rawAt, fsBlocks)
+        b.position(rawAt + rawBlocks * blk)
+        b.putShort(0xCAC3.toShort()); b.putShort(0); b.putInt(fsBlocks - rawBlocks); b.putInt(12)
+        return img
+    }
+
+    @Test fun razrHeaderIsRecognised() {
+        assertTrue(MotoImage.probe(Mem(razr(64, 8))))
+    }
+
+    @Test fun sparseImageBehindTheHeaderIsExposedAsExt4() {
+        val src = Mem(razr(64, 8))
+        assertFalse(SparseSource.probe(src))
+        val fs = MotoImage.unwrap(src)
+        assertNotSame(src, fs)
+        assertTrue(Ext4Reader.probe(fs))
+        assertEquals(64L * blk, fs.size)
+        // the DONT_CARE tail reads as zeros
+        val b = ByteBuffer.allocate(blk)
+        fs.read(63L * blk, b)
+        assertTrue(b.array().all { it == 0.toByte() })
+    }
+
+    @Test fun brokenSparseBehindTheHeaderIsLeftAlone() {
+        val img = razr(64, 8)
+        img[32 * blk + 20] = 99   // chunk count no longer matches the table
+        val src = Mem(img)
+        assertSame(src, MotoImage.unwrap(src))
+    }
 }

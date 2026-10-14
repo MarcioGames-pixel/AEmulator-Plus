@@ -122,6 +122,10 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
     @Volatile private var lmk: GuestLmk? = null
     val net = NetProxy(ctx, paths, ::log)
     private val dns = DnsProxy(paths, img.api, ::log)
+    /** Cupcake/Donut (API <= 4) have no multitouch: their EventHub only accepts ABS_X/ABS_Y/ABS_PRESSURE + BTN_TOUCH. */
+    private fun singleTouchWanted(s: VmSettings) = s.mtMode == 4 || img.api <= 4
+    private fun effectiveMtMode(s: VmSettings) = if (singleTouchWanted(s)) 4 else s.mtMode
+
     val runner by lazy { GuestRunner(paths, img.copy(settings = settings)) }
 
     private val extraStubs = ArrayList<VoldStub>()
@@ -185,7 +189,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         }
         props.serve()
         input.rateHz = settings.touchHz
-        input.mtMode = settings.mtMode
+        input.mtMode = effectiveMtMode(settings)
         input.serve()
         frames.serve()
         power.writeText("")
@@ -552,6 +556,8 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         // в прошивках старая база часовых поясов — передаём текущее смещение, а не название зоны
         overrides["persist.sys.timezone"] = gmtZone()
         if (!props.prepare(overrides)) error("property area not ready")
+        // images imported before these defaults existed (or whose init.rc lacks them): ActivityManager needs every one of them
+        if (img.api <= 15) for ((k, v) in app.aemu.importer.Analyzer.LMK_DEFAULTS) if (props.get(k).isNullOrEmpty()) props.put(k, v)
         fixer.skipPreBoot(props)
         // Do not let the older Sony migration un-provision data completed by the explicit option.
         if (SetupWizardOption.restoreSonyFlow(s.skipSetupWizard,
@@ -565,7 +571,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         // 3. службы хоста
         props.serve()
         input.rateHz = s.touchHz
-        input.mtMode = s.mtMode
+        input.mtMode = effectiveMtMode(s)
         input.detectHome(paths.root)
         input.trackballEnabled = settings.trackball
         input.serve()
@@ -612,6 +618,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         runner.sdcardHost = sd
         val r = GuestRunner(paths, img.copy(settings = settings), netCfg.copy(glPath = if (s.gpu) "/dev/socket/gl" else null)).also {
             it.sdcardHost = sd
+            it.singleTouch = singleTouchWanted(s)
             // отладка: файл run/binder.verbose включает полную трассировку binder в binder-warn.log
             it.binderVerbose = File(paths.bin, "binder.verbose").exists()
             it.userQemuArgs = s.qemuArgs
@@ -619,6 +626,7 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         runnerRef = r
         Keeper.hold(ctx, img.name)
 
+        watchFb0()
         bootAt = System.currentTimeMillis()
         bootDoneAt = 0
         everBooted = false; zygoteRestarts = 0; imeRetried = false
@@ -1086,6 +1094,40 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
         if (def == null) { log("ctl.${if (start) "start" else "stop"} $svc: no such service"); return }
         synchronized(procs) { procs.remove(svc) }?.destroyForcibly()
         if (start) Thread { runCatching { startService(def) } }.start()
+    }
+
+    /**
+     * Read-only diagnostics: during the first two minutes, note in the log when the guest first puts a non-black pixel
+     * into fb0 (e.g. the boot logo or the lock screen). A framebuffer that is zero at the end of the boot can mean "never
+     * written" or "a black frame was written"; this tells the two apart. Never writes to the file.
+     */
+    private fun watchFb0() {
+        if (recoveryMode) return
+        val f = paths.fb
+        Thread({
+            val start = System.currentTimeMillis()
+            val buf = ByteArray(64 * 1024)
+            var seen = false
+            while (!stopping && System.currentTimeMillis() - start < 120_000 && !seen) {
+                runCatching {
+                    java.io.RandomAccessFile(f, "r").use { r ->
+                        val total = minOf(r.length(), 4L shl 20)
+                        var pos = 0L; var nz = 0L; var firstAt = -1L
+                        while (pos < total) {
+                            val n = r.read(buf); if (n <= 0) break
+                            for (i in 0 until n) if (buf[i].toInt() != 0) { nz++; if (firstAt < 0) firstAt = pos + i }
+                            pos += n
+                        }
+                        if (nz > 0) {
+                            seen = true
+                            log("fb0: first non-black pixels ${(System.currentTimeMillis() - start) / 1000.0} s after boot start ($nz non-zero bytes, first at offset $firstAt)")
+                        }
+                    }
+                }
+                if (!seen) try { Thread.sleep(300) } catch (_: InterruptedException) { return@Thread }
+            }
+            if (!seen && !stopping) log("fb0: no non-black pixel in the first 120 s (guest wrote nothing, or only black frames)")
+        }, "fb0-watch").apply { isDaemon = true; start() }
     }
 
     private fun afterBoot() {

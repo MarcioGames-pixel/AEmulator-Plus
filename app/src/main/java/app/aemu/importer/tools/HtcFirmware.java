@@ -1,3 +1,4 @@
+/* Modified for AEmulator Plus, 2026-10-14: RUU installers that hold rom.nbh instead of rom.zip (HTC Sapphire / Magic). GPL-3.0; see NOTICE.md. */
 package app.aemu.importer.tools;
 
 import java.io.BufferedInputStream;
@@ -28,7 +29,8 @@ import java.util.zip.ZipInputStream;
  *  1. RUU installers (RUU_*.exe, "older" and "newer" alike). These are InstallShield 15-18 setups: the
  *     PE overlay holds a list of embedded files (data1.hdr, data1.cab, ...). data1.hdr describes the
  *     cabinet, data1.cab holds rom.zip (deflate chunks). rom.zip is streamed straight out of the
- *     cabinet, so no multi-hundred-megabyte temporary copy is needed.
+ *     cabinet, so no multi-hundred-megabyte temporary copy is needed. The oldest RUUs (Sapphire / Magic,
+ *     Dream) carry a Dream-style rom.nbh there instead (see 3.); that one is spilled to a temporary file.
  *  2. rom.zip itself: HTC prepends a 256-byte RSA signature to the ZIP and to the *_signed.img files
  *     (boot_signed.img, recovery_signed.img on S-ON devices of the Sense 4 era).
  *  3. Dream-style NBH (DREAIMG.nbh, SAPPIMG.nbh ...): 256-byte signature, a header with a UTF-32LE
@@ -108,12 +110,39 @@ public final class HtcFirmware {
 
             IsFile rom = cabinet.find("rom.zip");
             if (rom == null) rom = cabinet.largestWithExt(".zip");
-            if (rom == null) throw new IOException("RUU: no rom.zip inside the installer");
+            if (rom == null) {
+                // Dream / Magic / Hero era RUUs (SAPPIMG, DREAIMG ...) ship a Dream-style rom.nbh instead of rom.zip
+                IsFile nbh = cabinet.find("rom.nbh");
+                if (nbh == null) nbh = cabinet.largestWithExt(".nbh");
+                if (nbh != null) return extractRuuNbh(r, cab, nbh, work, log);
+                throw new IOException("RUU: no rom.zip or rom.nbh inside the installer");
+            }
             log.accept("RUU: " + rom.name + " " + (rom.usize >> 20) + " MB");
 
             try (InputStream raw = new IsFileStream(r, cab.offset, cab.size, rom)) {
                 return extractRomZip(raw, work, log);
             }
+        }
+    }
+
+    /**
+     * rom.nbh of an old RUU: the NBH reader needs random access, so the file is first streamed out of the
+     * cabinet into a temporary file (about 100 MB), unpacked, and the copy is removed again.
+     */
+    private static List<Item> extractRuuNbh(RandomAccessFile r, OvFile cab, IsFile nbh, File work, Consumer<String> log) throws IOException {
+        log.accept("RUU: " + nbh.name + " " + (nbh.usize >> 20) + " MB (Dream-style NBH)");
+        File tmp = new File(work, "ruu-rom.nbh.tmp");
+        try {
+            try (InputStream raw = new IsFileStream(r, cab.offset, cab.size, nbh);
+                 OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp), 1 << 16)) {
+                byte[] buf = new byte[1 << 16];
+                int k;
+                while ((k = raw.read(buf)) > 0) os.write(buf, 0, k);
+            }
+            return extractDreamNbh(tmp, work, log);
+        } finally {
+            //noinspection ResultOfMethodCallIgnored
+            tmp.delete();
         }
     }
 

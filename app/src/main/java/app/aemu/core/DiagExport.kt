@@ -20,7 +20,8 @@ import java.util.zip.ZipOutputStream
 object DiagExport {
     private const val HEAD = 512L shl 10        // first 512 KiB of a big file
     private const val TAIL = 3L shl 20          // last 3 MiB of a big file
-    private val INPUT_LINE = Regex("/dev/input|EVIOC|event[0-9]|epoll_(create|ctl)|input_event|ENOTTY|/dev/tty|/dev/graphics")
+    private const val FBTEST_ELF = "7f454c4601010100000000000000000002002800010000005400010034000000000000000002000534002000010000000000000001000000000000000000010000000100d8000000d8000000070000000010000068008fe20210a0e30570a0e3000000ef000050e30200a0b3120000ba0040a0e10000a0e34b19a0e30320a0e30130a0e30050a0e3c070a0e3000000ef010a70e30300a0830700008a0060a0e14b1aa0e3013086e00020e0e3042086e4030056e1fcffff3a0000a0e30170a0e3000000ef2f6465762f67726170686963732f666230000000"
+    private val INPUT_LINE = Regex("/dev/input|EVIOC|event[0-9]|epoll_(create|ctl)|input_event|ENOTTY|/dev/tty|/dev/graphics|ioctl\\(\\d+,(0x|FBIO)46[0-9a-fA-F]{2}|FBIO|mmap2?\\(.*MAP_SHARED")
     private val READ16 = Regex("read\\(\\d+,0x[0-9a-f]+,(16|24)\\)")
 
     /** Returns a human readable location of the result, or throws. */
@@ -64,6 +65,21 @@ object DiagExport {
                         "echo == ls /data/data/com.android.providers.contacts/databases; ls -l /data/data/com.android.providers.contacts/databases 2>&1"
                     val (code, text) = vm.guestRunner.run(listOf("/system/bin/sh", "-c", "export PATH=/system/bin:/system/xbin:\$PATH; $cmd"), 15_000)
                     o.write("# exit $code\n".toByteArray()); o.write(text.toByteArray())
+                }
+                // Does a plain write through a shared mmap of fb0 (exactly what SurfaceFlinger does) reach the file the app displays?
+                // A 216-byte ARM program maps fb0 read/write shared and fills the first 16bpp page with white; it never truncates the file.
+                // If the screen turns white / the host sees non-zero bytes, the mapping and the display path work and the problem is SurfaceFlinger's drawing.
+                if (vm.state == GuestVm.State.RUNNING) entry(zip, "guest-fb-map-test.txt") { o ->
+                    val bin = File(vm.paths.root, "data/local/tmp/aemu-fbtest")
+                    bin.parentFile?.mkdirs()
+                    bin.writeBytes(FBTEST_ELF.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+                    bin.setExecutable(true, false); bin.setReadable(true, false)
+                    val (code, text) = vm.guestRunner.run(listOf("/data/local/tmp/aemu-fbtest"), 10_000)
+                    o.write("# guest exit $code (0 = mapped and filled; 2 = open failed; 3 = mmap failed)\n$text\n".toByteArray())
+                    var nz = 0L
+                    runCatching { java.io.RandomAccessFile(vm.paths.fb, "r").use { r -> val b = ByteArray(65536); var left = r.length(); while (left > 0) { val n = r.read(b); if (n <= 0) break; for (i in 0 until n) if (b[i].toInt() != 0) nz++; left -= n } } }
+                    o.write("host sees $nz non-zero bytes in fb0 after the test (expected 307200 if the shared mapping reaches the file)\n".toByteArray())
+                    bin.delete()
                 }
                 entry(zip, "guest-sms-db.txt") { it.write(smsDb(ctx, vm).toByteArray()) }
                 vm.paths.bin.listFiles()?.filter { it.isFile }?.sortedBy { it.name }?.forEach { f -> addFile(zip, "run/${f.name}", f) }
@@ -180,6 +196,33 @@ object DiagExport {
         listOf("dev/input", "dev/graphics").forEach { d ->
             File(p.root, d).listFiles()?.sortedBy { it.name }?.forEach { appendLine("$d/${it.name}: ${kind(it)} size=${it.length()}") } ?: appendLine("$d: missing")
         }
+        appendLine()
+        appendLine("-- fb0 content (what the guest has actually drawn) --")
+        runCatching {
+            val f = p.fb
+            val w = vm.settings.width; val h = vm.settings.height
+            val page16 = w.toLong() * h * 2
+            RandomAccessFile(f, "r").use { r ->
+                val len = r.length()
+                val buf = ByteArray(65536)
+                var pos = 0L; var nzFirst = 0L; var nzSecond = 0L; var first = -1L; var last = -1L
+                val distinct = HashSet<Int>()
+                while (pos < len) {
+                    val n = r.read(buf); if (n <= 0) break
+                    for (i in 0 until n) if (buf[i].toInt() != 0) {
+                        val at = pos + i
+                        if (at < page16) nzFirst++ else nzSecond++
+                        if (first < 0) first = at
+                        last = at
+                    }
+                    if (distinct.size < 64) for (i in 0 until n - 1 step 2) { distinct.add((buf[i].toInt() and 0xff) or ((buf[i + 1].toInt() and 0xff) shl 8)); if (distinct.size >= 64) break }
+                    pos += n
+                }
+                appendLine("size=$len, 16bpp page=$page16 bytes ($w x $h), non-zero bytes: first 16bpp page=$nzFirst, rest=$nzSecond, first non-zero at $first, last at $last, distinct 16-bit values (capped 64)=${distinct.size}")
+                r.seek(0); val head = ByteArray(32); r.read(head)
+                appendLine("first 32 bytes: ${head.joinToString("") { "%02x".format(it) }}")
+            }
+        }.onFailure { appendLine("[fb0 read failed: $it]") }
         appendLine()
         appendLine("-- guest shim --")
         val shim = File(p.root, "system/lib/libaemushim.so")

@@ -277,6 +277,81 @@ object ElfPatch {
         return want.copyOf(if (thumb) 4 else 8)
     }
 
+    /**
+     * New body of bionic's cacheflush(start, end, flags) for firmware older than 2.3 (see [execCacheflush]):
+     *
+     *     stmfd sp!, {r7, lr}
+     *     bic   r0, r0, #0xff ; bic r0, r0, #0xf00   @ start rounded down to a page
+     *     sub   r1, r1, r0                           @ length up to `end` (the kernel rounds it up to pages)
+     *     mov   r2, #7                               @ PROT_READ | PROT_WRITE | PROT_EXEC
+     *     mov   r7, #125                             @ __NR_mprotect
+     *     svc   #0
+     *     ldmfd sp!, {r7, pc}
+     *
+     * Exactly the 8 words (32 bytes) of the stock stub: 7 instructions plus the `.word 0xf0002` literal.
+     * The real cache-flush syscall is dropped on purpose: qemu-user keeps translated code coherent by write-protecting
+     * the pages it translated, and it ignores the syscall. r0 is left holding mprotect()'s result (0 on success).
+     */
+    val CACHEFLUSH_EXEC = intArrayOf(
+        0xE92D4080.toInt(), 0xE3C000FF.toInt(), 0xE3C00C0F.toInt(), 0xE0411000.toInt(),
+        0xE3A02007.toInt(), 0xE3A0707D.toInt(), 0xEF000000.toInt(), 0xE8BD8080.toInt()
+    )
+    private const val ARM_NR_CACHEFLUSH = 0x000F0002
+    private const val ARM_SWI_0 = 0xEF000000.toInt()
+    private const val ARM_NOP = 0xE1A00000.toInt()
+
+    /**
+     * What to write over the stock ARM `cacheflush` stub that starts at file offset [off] of [d], or null when the
+     * bytes there are not that stub (or are already patched). The stub is
+     *
+     *     stmfd sp!, {r4, r7} ; ldr r7, =0xf0002 ; swi #0 ; ldmfd sp!, {r4, r7} ; movs r0, r0 ; bxpl lr ; b __set_syscall_errno
+     *     .word 0xf0002
+     *
+     * (or a close variant) and its literal pool sits right behind it, so the region to overwrite is from [off] to the end of
+     * that literal. It is only used when the `ldr r7` really loads that very literal and a `swi #0` follows, and when the
+     * region is at least as long as [CACHEFLUSH_EXEC]; any padding left over becomes nops.
+     */
+    fun cacheflushExecBytes(d: ByteArray, off: Int): ByteArray? {
+        if (off < 0 || off % 4 != 0 || off + 4 * 12 > d.size) return null
+        val b = ByteBuffer.wrap(d).order(ByteOrder.LITTLE_ENDIAN)
+        if (b.getInt(off) == CACHEFLUSH_EXEC[0] && b.getInt(off + 4) == CACHEFLUSH_EXEC[1]) return null // already patched
+        var lit = -1
+        for (i in 0 until 12) if (b.getInt(off + 4 * i) == ARM_NR_CACHEFLUSH) { lit = i; break }
+        if (lit < CACHEFLUSH_EXEC.size - 1) return null
+        var ldr = -1; var swi = -1
+        for (i in 0 until lit) {
+            val w = b.getInt(off + 4 * i)
+            // ldr r7, [pc, #imm12]: pc reads as this instruction + 8
+            if ((w and 0xfffff000.toInt()) == 0xE59F7000.toInt() && 4 * i + 8 + (w and 0xfff) == 4 * lit) ldr = i
+            if (w == ARM_SWI_0) swi = i
+        }
+        if (ldr < 0 || swi < ldr) return null
+        val out = ByteBuffer.allocate(4 * (lit + 1)).order(ByteOrder.LITTLE_ENDIAN)
+        for (w in CACHEFLUSH_EXEC) out.putInt(w)
+        while (out.hasRemaining()) out.putInt(ARM_NOP)
+        return out.array()
+    }
+
+    /**
+     * libaemushim's cacheflush() makes the page range executable before the real call, but only firmware with LD_PRELOAD
+     * support in its linker (2.3+) ever loads that shim. Before that, Cupcake/Donut/Eclair/Froyo libpixelflinger still
+     * assembles its scanline code into malloc()ed heap and calls cacheflush() on it, a real kernel runs it from there,
+     * and qemu-user does not: SurfaceFlinger died with SIGSEGV at the first generated scanline (PC at the very start of
+     * the "ARMAssembler: generated scanline_..." range, in an rw-p mapping), i.e. on the first menu, and took
+     * system_server and zygote with it. Patches the libc [f] so that cacheflush() itself does the mprotect.
+     * Returns 1 when patched, 0 when not applicable / already patched.
+     */
+    fun execCacheflush(f: File): Int {
+        val d = runCatching { f.readBytes() }.getOrNull() ?: return 0
+        val sym = symbolsIn(d, setOf("cacheflush"))?.get("cacheflush") ?: return 0
+        if ((sym shr 40) and 1L == 1L) return 0 // Thumb: not the stock stub
+        val off = (sym and 0xffffffffffL).toInt()
+        val code = cacheflushExecBytes(d, off) ?: return 0
+        if (!f.canWrite()) f.setWritable(true, true)
+        RandomAccessFile(f, "rw").use { raf -> raf.seek(off.toLong()); raf.write(code) }
+        return 1
+    }
+
     /** Сделать функции «return 0». Возвращает число изменённых (уже исправленные не считаются). */
     fun returnZero(f: File, names: Set<String>, includeSymtab: Boolean = false): Int =
         returnZeroMatching(f, includeSymtab) { it in names }
@@ -548,6 +623,55 @@ object ElfPatch {
         val d = runCatching { f.readBytes() }.getOrNull() ?: return 0
         val at = skipNullDeviceHookOffsets(d).firstOrNull() ?: return 0
         RandomAccessFile(f, "rw").use { raf -> raf.seek(at.toLong()); raf.write(THUMB_MOVS_R3_0) }
+        return 1
+    }
+
+    private val THUMB_NOP2 = byteArrayOf(0x00, 0xbf.toByte(), 0x00, 0xbf.toByte()) // nop ; nop
+
+    /**
+     * Eclair/Froyo libsurfaceflinger: Layer::onDraw() paints a layer that has no texture yet (current buffer's texture
+     * name == -1, i.e. nothing was ever queued) by calling LayerBase::clearWithOpenGL(clip), which disables blending and
+     * fills the layer's region with 0,0,0,0, so on an RGB565 screen it is opaque black. The Nexus One Launcher's
+     * AllApps3D RenderScript SurfaceView is such a layer (480x762, [0x0] buffer, setSurface w h 0x0): its GL context never
+     * gets going, it stays visible without a single frame and blacks out everything below it except the status bar.
+     * Returns the file offset of the 32-bit `bl clearWithOpenGL(Region)` inside Layer::onDraw, or null when the function,
+     * the symbol or the single call is not there (anything else is left alone).
+     */
+    fun skipUndrawnLayerClearOffset(d: ByteArray): Int? {
+        val onDraw = "_ZNK7android5Layer6onDrawERKNS_6RegionE"
+        val clear = "_ZNK7android9LayerBase15clearWithOpenGLERKNS_6RegionE"
+        val syms = symbolsIn(d, setOf(onDraw, clear)) ?: return null
+        val a = syms[onDraw] ?: return null
+        val c = syms[clear] ?: return null
+        if ((a shr 40) and 1L != 1L || (c shr 40) and 1L != 1L) return null // Thumb only
+        val start = (a and 0xffffffffffL).toInt()
+        val target = (c and 0xffffffffffL).toInt()
+        val size = symbolSize(d, onDraw) ?: return null
+        if (size < 16 || start + size > d.size) return null
+        fun u16(o: Int) = (d[o].toInt() and 0xff) or ((d[o + 1].toInt() and 0xff) shl 8)
+        var hit = -1
+        var i = start
+        while (i + 4 <= start + size) {
+            val h1 = u16(i); val h2 = u16(i + 2)
+            if ((h1 and 0xf800) == 0xf000 && (h2 and 0xd000) == 0xd000) { // 32-bit bl
+                val s = (h1 shr 10) and 1
+                val i1 = ((h2 shr 13) and 1 xor s) xor 1
+                val i2 = ((h2 shr 11) and 1 xor s) xor 1
+                var off = (s shl 24) or (i1 shl 23) or (i2 shl 22) or ((h1 and 0x3ff) shl 12) or ((h2 and 0x7ff) shl 1)
+                if (s == 1) off = off or (-1 shl 25)
+                if (i + 4 + off == target) { if (hit >= 0) return null; hit = i } // ambiguous
+                i += 4
+            } else i += 2
+        }
+        return if (hit >= 0) hit else null
+    }
+
+    /** libsurfaceflinger (Eclair/Froyo): a layer that was never drawn into is skipped instead of cleared to black. 1 when patched. */
+    fun skipUndrawnLayerClear(f: File): Int {
+        val d = runCatching { f.readBytes() }.getOrNull() ?: return 0
+        val at = skipUndrawnLayerClearOffset(d) ?: return 0
+        if (!f.canWrite()) f.setWritable(true, true)
+        RandomAccessFile(f, "rw").use { raf -> raf.seek(at.toLong()); raf.write(THUMB_NOP2) }
         return 1
     }
 }

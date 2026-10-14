@@ -476,7 +476,9 @@ __attribute__((naked, noinline)) static long sys4(long n, long a, long b, long c
 }
 #define SYS_nanosleep 162
 #include "vibration.h"
+#ifndef AEMU_NO_PROPERTY_CLIENT
 #include "property-client.h"
+#endif
 EXPORT int openat(int dirfd, const char *path, int flags, ...) {
     int mode = 0;
     if (flags & 0100) {
@@ -612,6 +614,20 @@ static int is_player_notify(const unsigned char *td) {
 }
 
 static int is_waiting(int tid) { for (int k = 0; k < 64; k++) if (waiting_tid[k] == tid) return 1; return 0; }
+
+/* Cupcake..Froyo libpixelflinger assembles its scanline code into malloc'd heap memory and runs it after cacheflush().
+ * Real kernels of that era let the heap execute; qemu-user enforces PROT_EXEC and the guest dies with SIGSEGV at a
+ * PC inside the rw-p heap. Make the page range executable before the real cacheflush.
+ * NOTE: this only helps where the linker honours LD_PRELOAD, i.e. 2.3+. Before that this shim is never loaded; those
+ * releases get the same fix patched straight into libc's cacheflush() (TreeFixer.executableCodeCache). */
+EXPORT int cacheflush(long start, long end, long flags) {
+    if (end > start && end - start < (1L << 22)) {
+        unsigned long s = (unsigned long)start & ~4095UL, e = ((unsigned long)end + 4095UL) & ~4095UL;
+        sys3(125 /* mprotect */, (long)s, (long)(e - s), 7 /* RWX */);
+    }
+    long r = sys3(0xf0002 /* ARM cacheflush */, start, end, flags);
+    return r < 0 ? fail(r) : 0;
+}
 
 EXPORT int ioctl(int fd, int req, void *arg) {
     if (((unsigned)req >> 8 & 255) == 'E' && trackball_fd(fd)) return trackball_ioctl((unsigned)req, arg);

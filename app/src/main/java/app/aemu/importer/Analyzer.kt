@@ -136,13 +136,15 @@ class Analyzer(private val ctx: Context, private val paths: VmPaths, private val
             }
         }
 
-        private val LMK_DEFAULTS = listOf(
+        internal val LMK_DEFAULTS = listOf(
             "ro.FOREGROUND_APP_ADJ" to "0", "ro.VISIBLE_APP_ADJ" to "1", "ro.PERCEPTIBLE_APP_ADJ" to "2",
             "ro.HEAVY_WEIGHT_APP_ADJ" to "3", "ro.SECONDARY_SERVER_ADJ" to "4", "ro.BACKUP_APP_ADJ" to "5",
             "ro.HOME_APP_ADJ" to "6", "ro.HIDDEN_APP_MIN_ADJ" to "7", "ro.EMPTY_APP_ADJ" to "15",
             "ro.FOREGROUND_APP_MEM" to "2048", "ro.VISIBLE_APP_MEM" to "3072", "ro.PERCEPTIBLE_APP_MEM" to "4096",
             "ro.HEAVY_WEIGHT_APP_MEM" to "4096", "ro.SECONDARY_SERVER_MEM" to "6144", "ro.BACKUP_APP_MEM" to "6144",
             "ro.HOME_APP_MEM" to "6144", "ro.HIDDEN_APP_MEM" to "7168", "ro.EMPTY_APP_MEM" to "8192",
+            // Eclair/Froyo ActivityManagerService also reads these; an empty value ends in NumberFormatException in system_server
+            "ro.CONTENT_PROVIDER_ADJ" to "14", "ro.CONTENT_PROVIDER_MEM" to "7680",
         )
         private val NET_DEFAULTS = listOf(
             "net.tcp.buffersize.default" to "4096,87380,110208,4096,16384,110208",
