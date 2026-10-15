@@ -1245,8 +1245,11 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                     if (name == "mediaserver" && code == 139 && n == 2) abandonAospPolicy()
                     // Android 2.x netd may exit when its legacy DNS proxy socket is unavailable.
                     // Do not restart-loop this optional daemon on API < 14; modern netd remains supervised.
-                    val mustRestart = svc != null && (svc.restart ||
-                        (name in ALWAYS_RESTART && (name != "netd" || img.api >= 14)))
+                    // Gingerbread netd exits when its legacy DNS proxy socket is unavailable;
+                    // never restart-loop netd below API 14, even if the ROM marks it restartable.
+                    val mustRestart = svc != null &&
+                        !(name == "netd" && img.api < 14) &&
+                        (svc.restart || name in ALWAYS_RESTART)
                     if (mustRestart && code != 137 && code != 143 && n < 12) {
                         restarts[name] = n + 1
                         log("service $name crashed (code $code), restarting (${n + 1}/12)")
