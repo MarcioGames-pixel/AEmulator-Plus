@@ -160,6 +160,7 @@ class TreeFixer(
         scriptShebangs()
         samsungEfs()
         selinuxOff()
+        parkMotorolaGki()
         surfaceGuard()
         surfaceFlingerGuard()
         executableCodeCache()
@@ -1039,6 +1040,48 @@ class TreeFixer(
         if (!keep.exists()) { keep.parentFile?.mkdirs(); lib.copyTo(keep) }
         if (ElfPatch.execCacheflush(lib) > 0) log("libc: cacheflush() makes generated code executable (no LD_PRELOAD before 2.3)")
     }.onFailure { log("libc: cacheflush patch failed: ${it.message}") }
+
+    /**
+     * Legacy Motorola Milestone firmware ships a proprietary GKI daemon which assumes Motorola's
+     * Bluetooth/kernel interfaces exist. On the emulator, gkisystem crashes in libgki.so (SIGSEGV,
+     * low address) and can be respawned repeatedly by init. There is no matching host GKI service,
+     * so disable only this optional vendor daemon when its complete signature is present.
+     */
+    private fun parkMotorolaGki() = runCatching {
+        val bin = File(root, "system/bin/gkisystem")
+        val gki = File(root, "system/lib/libgki.so")
+        val dbg = File(root, "system/lib/libmotodbgutils.so")
+        if (!bin.isFile || !gki.isFile || !dbg.isFile) return@runCatching
+
+        val parked = File(root, "system/.aemu-parked").apply { mkdirs() }
+        fun park(src: File) {
+            val dst = File(parked, src.relativeTo(root).path.replace('/', '#'))
+            if (!dst.exists()) src.copyTo(dst, overwrite = true)
+            if (src.exists() && !src.delete()) log("motorola-gki: could not remove ${src.name}")
+        }
+        // Disable init service blocks that launch this exact daemon, preserving unrelated Motorola services.
+        val rcFiles = sequenceOf(File(root, "init.rc"), File(root, "system/etc"))
+            .flatMap { f -> if (f.isDirectory) f.walkTopDown().maxDepth(3).filter { it.isFile && it.name.endsWith(".rc") } else sequenceOf(f).filter { it.isFile } }
+            .toList()
+        var disabled = 0
+        val serviceStart = Regex("^\\s*service\\s+(\\S+)\\s+.*(?:/)?gkisystem(?:\\s|$)")
+        for (rc in rcFiles) {
+            val lines = runCatching { rc.readLines(Charsets.ISO_8859_1) }.getOrNull() ?: continue
+            val out = ArrayList<String>(lines.size)
+            var inTarget = false
+            var changed = false
+            for (line in lines) {
+                if (line.trimStart().startsWith("service ")) inTarget = serviceStart.containsMatchIn(line)
+                if (inTarget) {
+                    out += if (line.trimStart().startsWith("#")) line else "# aemu-disabled Motorola GKI: $line"
+                    changed = true
+                } else out += line
+            }
+            if (changed && runCatching { rc.writeText(out.joinToString("\n", postfix = "\n"), Charsets.ISO_8859_1) }.isSuccess) disabled++
+        }
+        park(bin); park(gki); park(dbg)
+        log("motorola-gki: disabled proprietary gkisystem and parked its libraries (init files changed: $disabled)")
+    }.onFailure { log("motorola-gki: compatibility workaround failed: ${it.message}") }
 
     /**
      * A failed Surface.unlockCanvasAndPost() throws IllegalArgumentException; on a system_server thread nothing
