@@ -71,4 +71,21 @@ class DeviceSkinTest {
         val n = SkinRect(0.5f, 0.5f, 0.5f, 0.2f).normalized()
         assertTrue(n.width >= SkinRect.MIN - 1e-5f && n.t < n.b)
     }
+
+    @Test fun normalizedRectAtBottomRightStaysInsidePicture() {
+        val n = SkinRect(0.99f, 0.99f, 0.99f, 0.99f).normalized()
+        assertEquals(1f, n.r, 0f)
+        assertEquals(1f, n.b, 0f)
+        assertTrue(n.l >= 0f && n.t >= 0f)
+        assertTrue(n.width >= SkinRect.MIN - 1e-5f)
+        assertTrue(n.height >= SkinRect.MIN - 1e-5f)
+    }
+
+    @Test fun normalizedRectReversedAtBoundaryStaysInsidePicture() {
+        val n = SkinRect(1.2f, 1.1f, 0.99f, 0.98f).normalized()
+        assertTrue(n.l >= 0f && n.t >= 0f)
+        assertTrue(n.r <= 1f && n.b <= 1f)
+        assertTrue(n.width >= SkinRect.MIN - 1e-5f)
+        assertTrue(n.height >= SkinRect.MIN - 1e-5f)
+    }
 }

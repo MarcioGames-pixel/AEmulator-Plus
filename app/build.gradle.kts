@@ -103,6 +103,8 @@ dependencies {
     implementation("org.anarres.lzo:lzo-commons:1.0.6")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    // Use a real JSON implementation in local JVM tests instead of Android's "not mocked" org.json stubs.
+    testImplementation("org.json:json:20240303")
 }
 
 tasks.named("preBuild") { dependsOn(copyLegalNotices) }
