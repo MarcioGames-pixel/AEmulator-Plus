@@ -229,7 +229,11 @@ object InitPlan {
         "keystore" -> GuestService("keystore", listOf("/system/bin/keystore", "/data/misc/keystore"))
         "installd" -> GuestService("installd", listOf("/system/bin/installd"), mapOf("installd" to "0600"))
         "netd" -> GuestService("netd", listOf("/system/bin/netd"),
-            if (api >= 14) mapOf("netd" to "0660", "dnsproxyd" to "0660", "mdns" to "0660") else mapOf("netd" to "0660"))
+            buildMap {
+                put("netd", "0660")
+                if (api >= 8) put("dnsproxyd", "0660")
+                if (api >= 14) put("mdns", "0660")
+            })
         "media", "mediaserver" -> GuestService("mediaserver", listOf("/system/bin/mediaserver"))
         "drm", "drmserver" -> if (api >= 11) GuestService("drmserver", listOf("/system/bin/drmserver")) else null
         "zygote" -> {
