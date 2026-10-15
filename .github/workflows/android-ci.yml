@@ -43,13 +43,13 @@ jobs:
         run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Run unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: bash ./gradlew --no-daemon testDebugUnitTest
 
       - name: Run Android lint
-        run: ./gradlew --no-daemon lintDebug
+        run: bash ./gradlew --no-daemon lintDebug
 
       - name: Build debug and release APKs
-        run: ./gradlew --no-daemon assembleDebug assembleRelease
+        run: bash ./gradlew --no-daemon assembleDebug assembleRelease
 
       - name: Upload debug APK
         if: success()
