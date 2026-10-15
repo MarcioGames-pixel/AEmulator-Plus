@@ -131,7 +131,7 @@ object InitPlan {
             // launch app_process32 (defaults() already builds that command line).
             val zygote32Only = r.name == "zygote" &&
                 !File(root, "system/bin/app_process").isFile && File(root, "system/bin/app_process32").isFile
-            val def = found?.takeUnless { zygote32Only }?.let { toService(it, r) } ?: defaults(r.name, api, root)?.let {
+            val def = found?.takeUnless { zygote32Only }?.let { toService(it, r, api) } ?: defaults(r.name, api, root)?.let {
                 it.copy(waitSocket = r.waitSocket, delayMs = r.delayMs, restart = r.restart)
             } ?: continue
             if (!File(root, def.argv.first().removePrefix("/")).isFile) continue
@@ -198,12 +198,20 @@ object InitPlan {
         "sensors.qcom", "location-mq", "xtwifi", "quipc", "usf_", "adsprpcd", "subsystem_ramdump",
     )
 
-    private fun toService(s: RcService, r: Rule): GuestService {
+    private fun toService(s: RcService, r: Rule, api: Int): GuestService {
         val name = when (r.name) { "media" -> "mediaserver"; "drm" -> "drmserver"; else -> r.name }
+        // Gingerbread netd still starts DnsProxyListener. Older init.rc files may declare only
+        // the "netd" socket, so provide the missing legacy DNS socket without overriding firmware modes.
+        val sockets = LinkedHashMap(s.sockets)
+        if (name == "netd") {
+            sockets.putIfAbsent("netd", "0660")
+            if (api >= 8) sockets.putIfAbsent("dnsproxyd", "0660")
+            if (api >= 14) sockets.putIfAbsent("mdns", "0660")
+        }
         return GuestService(
             name = name,
             argv = s.argv,
-            sockets = s.sockets.toMap(),
+            sockets = sockets,
             // службы идут от «root» гостя, как в эталонном стенде: qemu подделывает uid только по запросу
             uid = 0,
             gid = 0,
