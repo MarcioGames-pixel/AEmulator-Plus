@@ -1071,9 +1071,15 @@ class TreeFixer(
             var inTarget = false
             var changed = false
             for (line in lines) {
-                if (line.trimStart().startsWith("service ")) inTarget = serviceStart.containsMatchIn(line)
+                val trimmed = line.trimStart()
+                if (trimmed.startsWith("service ")) {
+                    inTarget = serviceStart.containsMatchIn(line)
+                } else if (inTarget && line.isNotBlank() && line.firstOrNull()?.isWhitespace() == false) {
+                    // A new top-level init action/service ends the preceding service block.
+                    inTarget = false
+                }
                 if (inTarget) {
-                    out += if (line.trimStart().startsWith("#")) line else "# aemu-disabled Motorola GKI: $line"
+                    out += if (trimmed.startsWith("#")) line else "# aemu-disabled Motorola GKI: $line"
                     changed = true
                 } else out += line
             }
