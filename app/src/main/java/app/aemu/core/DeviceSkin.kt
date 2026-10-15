@@ -12,9 +12,15 @@ data class SkinRect(val l: Float, val t: Float, val r: Float, val b: Float) {
     val height get() = b - t
     fun contains(x: Float, y: Float) = x in l..r && y in t..b
     fun normalized(): SkinRect {
-        val x0 = minOf(l, r).coerceIn(0f, 1f); val x1 = maxOf(l, r).coerceIn(0f, 1f)
-        val y0 = minOf(t, b).coerceIn(0f, 1f); val y1 = maxOf(t, b).coerceIn(0f, 1f)
-        return SkinRect(x0, y0, maxOf(x1, x0 + MIN), maxOf(y1, y0 + MIN))
+        val x0 = minOf(l, r).coerceIn(0f, 1f)
+        val x1 = maxOf(l, r).coerceIn(0f, 1f)
+        val y0 = minOf(t, b).coerceIn(0f, 1f)
+        val y1 = maxOf(t, b).coerceIn(0f, 1f)
+        // Keep the minimum touchable size without allowing the rectangle to spill outside the image.
+        val left = x0.coerceAtMost(1f - MIN)
+        val top = y0.coerceAtMost(1f - MIN)
+        return SkinRect(left, top, maxOf(x1, left + MIN).coerceAtMost(1f),
+            maxOf(y1, top + MIN).coerceAtMost(1f))
     }
     fun moved(dx: Float, dy: Float): SkinRect {
         val x = (l + dx).coerceIn(0f, 1f - width); val y = (t + dy).coerceIn(0f, 1f - height)
