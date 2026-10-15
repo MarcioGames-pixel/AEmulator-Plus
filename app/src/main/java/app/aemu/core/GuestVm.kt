@@ -1243,7 +1243,11 @@ class GuestVm(val ctx: Context, val img: GuestImage, val lowPowerBoot: Boolean =
                     if (name == "mediaserver" && code == 139 && n == 1) swapAudioPolicy()
                     // the AOSP stand-in crashed as well (different service ABI): keep the firmware's own policy for good
                     if (name == "mediaserver" && code == 139 && n == 2) abandonAospPolicy()
-                    if (svc != null && (svc.restart || name in ALWAYS_RESTART) && code != 137 && code != 143 && n < 12) {
+                    // Android 2.x netd may exit when its legacy DNS proxy socket is unavailable.
+                    // Do not restart-loop this optional daemon on API < 14; modern netd remains supervised.
+                    val mustRestart = svc != null && (svc.restart ||
+                        (name in ALWAYS_RESTART && (name != "netd" || img.api >= 14)))
+                    if (mustRestart && code != 137 && code != 143 && n < 12) {
                         restarts[name] = n + 1
                         log("service $name crashed (code $code), restarting (${n + 1}/12)")
                         runCatching { startService(svc) }
